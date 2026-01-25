@@ -26,6 +26,10 @@ venv/
 ENV/
 env/
 
+# Environment secrets (never commit!)
+.env
+.env.local
+
 # IDE
 .idea/
 .vscode/

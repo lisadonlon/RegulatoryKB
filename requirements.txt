@@ -31,6 +31,10 @@ python-dateutil>=2.8.0
 # Logging (enhanced)
 colorlog>=6.7.0
 
+# Regulatory Intelligence Agent
+anthropic>=0.18.0  # Claude API for LLM summaries (optional)
+python-dotenv>=1.0.0  # Load .env files
+
 # Development dependencies
 pytest>=7.4.0
 pytest-cov>=4.1.0
