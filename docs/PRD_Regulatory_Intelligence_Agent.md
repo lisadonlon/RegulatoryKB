@@ -111,9 +111,11 @@ intelligence:
 | FR-3.2 | Check if linked document already exists in KB (by title similarity) | Must |
 | FR-3.3 | Identify freely downloadable documents (PDF links) | Must |
 | FR-3.4 | Flag documents requiring manual download (paywalled) | Should |
-| FR-3.5 | Auto-download new free documents to specified location | Must |
-| FR-3.6 | Auto-import downloaded documents to KB with metadata | Must |
-| FR-3.7 | Tag imported documents with source (Index-of-Indexes) | Should |
+| FR-3.5 | Queue new documents for approval before download | Must |
+| FR-3.6 | CLI/email interface to approve/reject pending downloads | Must |
+| FR-3.7 | Download approved documents to specified location | Must |
+| FR-3.8 | Import approved documents to KB with metadata | Must |
+| FR-3.9 | Tag imported documents with source (Index-of-Indexes) | Should |
 
 ### 3.4 Summary Generation
 
@@ -150,11 +152,12 @@ intelligence:
 | FR-5.1 | Generate HTML email with formatted summaries | Must |
 | FR-5.2 | Weekly digest email (configurable day/time) | Must |
 | FR-5.3 | Monthly compilation email for team distribution | Must |
-| FR-5.4 | Include "New to KB" section with download confirmations | Should |
-| FR-5.5 | Include "Pending Review" section for items needing attention | Should |
-| FR-5.6 | Send via SMTP (configurable server) | Must |
-| FR-5.7 | Support multiple recipients | Should |
-| FR-5.8 | Plain text fallback for email clients | Should |
+| FR-5.4 | Daily alert email for high-relevance items (threshold-based) | Must |
+| FR-5.5 | Include "New to KB" section with download confirmations | Should |
+| FR-5.6 | Include "Pending Approval" section with approve/reject links | Must |
+| FR-5.7 | Send via SMTP (configurable server) | Must |
+| FR-5.8 | Support multiple recipients | Should |
+| FR-5.9 | Plain text fallback for email clients | Should |
 
 **Email Structure**:
 ```
@@ -268,6 +271,9 @@ intelligence:
     weekly_day: "monday"      # Day to run weekly digest
     weekly_time: "08:00"      # Time to run
     monthly_day: 1            # Day of month for team digest
+    daily_alerts: true        # Send daily email for high-relevance items
+    daily_alert_time: "09:00" # Time for daily alerts
+    daily_alert_threshold: 0.9  # Relevance score threshold for daily alerts
 
   filters:
     include_categories:
@@ -290,15 +296,16 @@ intelligence:
     combination_device_override: true
 
   downloads:
-    auto_download: true
-    require_approval: false
+    auto_download: false       # Require approval before downloading
+    require_approval: true     # Show pending downloads for user approval
     target_directory: "downloads/intelligence"
 
   summarization:
-    provider: "anthropic"     # or "openai", "local"
-    model: "claude-3-haiku"
-    style: "layperson"        # or "technical"
+    provider: "anthropic"     # Claude - best for medical/regulatory accuracy
+    model: "claude-3-5-haiku" # Fast, cost-effective for summaries
+    style: "layperson"        # Plain language for team distribution
     max_length: 200           # words per summary
+    # Note: Uses Claude Pro Max API key from environment
 
   email:
     smtp_server: "smtp.gmail.com"
@@ -562,17 +569,15 @@ Summary saved to: reports/intel_2026-01-26.html
 
 ---
 
-## 10. Open Questions
+## 10. Decisions (Resolved)
 
-1. **LLM Provider**: Anthropic Claude vs OpenAI GPT-4? (Recommend Claude for regulatory domain)
-
-2. **Email Frequency**: Weekly only, or option for daily highlights?
-
-3. **Approval Workflow**: Auto-download everything, or require approval for first run?
-
-4. **Team Recipients**: Static list, or allow team members to subscribe/unsubscribe?
-
-5. **Historical Backfill**: Process past newsletters to populate KB, or start fresh?
+| Question | Decision | Rationale |
+|----------|----------|-----------|
+| **LLM Provider** | Claude (Anthropic) | Better accuracy for medical/regulatory terminology, lower hallucination risk, user has Pro Max access |
+| **Email Frequency** | Weekly digest + daily alerts for high-relevance items only | Balance information flow without inbox overload |
+| **Approval Workflow** | Require approval before downloads | User control over what enters KB |
+| **Historical Backfill** | Start fresh | Focus on current/future updates |
+| **Team Recipients** | Static list (configurable in YAML) | Simple initial implementation |
 
 ---
 
