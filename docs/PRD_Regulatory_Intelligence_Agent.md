@@ -198,9 +198,11 @@ Vertigenius Regulatory Consulting
 | FR-6.2 | CLI command: `regkb intel summary` - Generate summary | Must |
 | FR-6.3 | CLI command: `regkb intel email` - Send email digest | Must |
 | FR-6.4 | CLI command: `regkb intel run` - Full workflow | Must |
-| FR-6.5 | Streamlit page for intelligence dashboard | Should |
-| FR-6.6 | Interactive approval for downloads (optional) | Could |
-| FR-6.7 | Scheduled execution (Windows Task Scheduler / cron) | Should |
+| FR-6.5 | CLI command: `regkb intel pending` - List pending approvals | Must |
+| FR-6.6 | CLI command: `regkb intel approve/reject` - Approve/reject downloads | Must |
+| FR-6.7 | CLI command: `regkb intel serve` - Start approval web endpoint | Must |
+| FR-6.8 | Streamlit page for intelligence dashboard | Should |
+| FR-6.9 | Scheduled execution (Windows Task Scheduler / cron) | Should |
 
 ---
 
@@ -575,9 +577,58 @@ Summary saved to: reports/intel_2026-01-26.html
 |----------|----------|-----------|
 | **LLM Provider** | Claude (Anthropic) | Better accuracy for medical/regulatory terminology, lower hallucination risk, user has Pro Max access |
 | **Email Frequency** | Weekly digest + daily alerts for high-relevance items only | Balance information flow without inbox overload |
-| **Approval Workflow** | Require approval before downloads | User control over what enters KB |
+| **Approval Workflow** | Both CLI and email links | CLI for power users, email for convenience |
+| **Daily Alert Trigger** | Keyword match | Specific terms (MDR, IVDR, FDA guidance, etc.) trigger immediate alerts |
+| **Monthly Format** | Curated highlights | Top 10-15 items with expanded summaries, not full compilation |
 | **Historical Backfill** | Start fresh | Focus on current/future updates |
 | **Team Recipients** | Static list (configurable in YAML) | Simple initial implementation |
+
+### Approval Workflow Detail
+
+The approval system supports two interfaces:
+
+**CLI Approval:**
+```bash
+$ regkb intel pending          # List pending downloads
+$ regkb intel approve 1 2 3    # Approve items by ID
+$ regkb intel reject 4         # Reject item
+$ regkb intel approve --all    # Approve all pending
+```
+
+**Email Approval:**
+- Each pending item in email includes unique approve/reject links
+- Links hit a lightweight local web endpoint (Flask/FastAPI)
+- Endpoint updates pending status and triggers download
+- Requires `regkb intel serve` running (or scheduled task)
+
+### Daily Alert Keywords
+
+Default high-priority keywords (configurable):
+```yaml
+daily_alert_keywords:
+  critical:  # Always alert
+    - "MDR"
+    - "IVDR"
+    - "FDA final guidance"
+    - "ISO 13485"
+    - "recall"
+    - "safety alert"
+  high:  # Alert if 2+ matches
+    - "SaMD"
+    - "AI/ML"
+    - "digital health"
+    - "cybersecurity"
+    - "MDCG"
+```
+
+### Monthly Digest Format
+
+**Curated Highlights Structure:**
+1. Executive Summary (3-5 sentences)
+2. Top 10-15 Most Important Updates (expanded summaries)
+3. Key Action Items (bulleted list)
+4. Documents Added to KB This Month
+5. Links to Weekly Digests for Full Details
 
 ---
 
