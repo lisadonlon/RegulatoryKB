@@ -539,10 +539,36 @@ Summary saved to: reports/intel_2026-01-26.html
 ### Phase 5: Automation & Polish
 **Duration**: 1 week
 
-- [ ] Scheduled execution support
+- [x] Scheduled execution support
 - [ ] Streamlit dashboard page
-- [ ] Error handling & retry logic
+- [x] Error handling & retry logic
 - [ ] Documentation & examples
+
+### Phase 6: Email Reply-Based Downloads ✅ COMPLETE
+**Duration**: 1 week
+
+- [x] Entry ID system (YYYY-MMDD-NN format) in digest emails
+- [x] Digest tracker database for entry lookup
+- [x] URL resolver for LinkedIn/social media links
+- [x] IMAP polling for digest reply processing
+- [x] Confirmation emails with download results
+- [x] CLI commands: `poll`, `resolve-url`, `download-entry`, `digest-entries`
+
+**Workflow**: Reply to digest with "Download: 07, 12" → IMAP poll detects reply → resolve URLs → download → import to KB → send confirmation email
+
+### Phase 7: EVS Standards Integration (Future)
+**Duration**: TBD
+
+- [ ] Detect standards updates available via EVS subscription
+- [ ] EVS API authentication with user credentials
+- [ ] Automated download of subscribed standards
+- [ ] Auto-import to KB with standards metadata
+- [ ] Handle standard revisions/amendments
+
+**Notes**:
+- For personal business use only (no redistribution licensing concerns)
+- User purchases standards via their own EVS account
+- Extends URL resolver to handle EVS-available domains (ISO, IEC, etc.)
 
 ---
 
