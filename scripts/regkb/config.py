@@ -156,6 +156,84 @@ class Config:
         """Get the list of valid jurisdictions."""
         return self._config["jurisdictions"]
 
+    def validate_document_type(self, doc_type: str) -> tuple[bool, str]:
+        """
+        Validate a document type against configured types.
+
+        Args:
+            doc_type: Document type to validate.
+
+        Returns:
+            Tuple of (is_valid, suggestion_or_error)
+        """
+        if not doc_type:
+            return False, "Document type cannot be empty"
+
+        valid_types = [t.lower() for t in self.document_types]
+        if doc_type.lower() in valid_types:
+            return True, ""
+
+        # Find closest match for suggestion
+        from difflib import get_close_matches
+        matches = get_close_matches(doc_type.lower(), valid_types, n=1, cutoff=0.6)
+        if matches:
+            return False, f"Invalid document type '{doc_type}'. Did you mean '{matches[0]}'? Valid types: {', '.join(self.document_types)}"
+        return False, f"Invalid document type '{doc_type}'. Valid types: {', '.join(self.document_types)}"
+
+    def validate_jurisdiction(self, jurisdiction: str) -> tuple[bool, str]:
+        """
+        Validate a jurisdiction against configured jurisdictions.
+
+        Args:
+            jurisdiction: Jurisdiction to validate.
+
+        Returns:
+            Tuple of (is_valid, suggestion_or_error)
+        """
+        if not jurisdiction:
+            return False, "Jurisdiction cannot be empty"
+
+        valid_jurisdictions = [j.lower() for j in self.jurisdictions]
+        if jurisdiction.lower() in valid_jurisdictions:
+            return True, ""
+
+        # Find closest match for suggestion
+        from difflib import get_close_matches
+        matches = get_close_matches(jurisdiction.lower(), valid_jurisdictions, n=1, cutoff=0.6)
+        if matches:
+            return False, f"Invalid jurisdiction '{jurisdiction}'. Did you mean '{matches[0]}'? Valid jurisdictions: {', '.join(self.jurisdictions)}"
+        return False, f"Invalid jurisdiction '{jurisdiction}'. Valid jurisdictions: {', '.join(self.jurisdictions)}"
+
+    def normalize_document_type(self, doc_type: str) -> str:
+        """
+        Normalize a document type to match configured case.
+
+        Args:
+            doc_type: Document type to normalize.
+
+        Returns:
+            Normalized document type or 'other' if invalid.
+        """
+        for valid_type in self.document_types:
+            if doc_type.lower() == valid_type.lower():
+                return valid_type
+        return "other"
+
+    def normalize_jurisdiction(self, jurisdiction: str) -> str:
+        """
+        Normalize a jurisdiction to match configured case.
+
+        Args:
+            jurisdiction: Jurisdiction to normalize.
+
+        Returns:
+            Normalized jurisdiction or 'Other' if invalid.
+        """
+        for valid_jur in self.jurisdictions:
+            if jurisdiction.lower() == valid_jur.lower():
+                return valid_jur
+        return "Other"
+
     def get(self, key: str, default: Any = None) -> Any:
         """
         Get a configuration value by key.

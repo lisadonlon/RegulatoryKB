@@ -26,6 +26,41 @@ class DocumentDownloader:
             'Accept-Language': 'en-US,en;q=0.9',
         })
 
+    def _validate_url(self, url: str) -> Tuple[bool, Optional[str]]:
+        """
+        Validate URL format before attempting download.
+
+        Returns:
+            Tuple of (is_valid, error_message)
+        """
+        if not url:
+            return False, "URL cannot be empty"
+
+        if not isinstance(url, str):
+            return False, f"URL must be a string, got {type(url).__name__}"
+
+        # Check URL format
+        try:
+            parsed = urlparse(url)
+        except Exception as e:
+            return False, f"Invalid URL format: {str(e)}"
+
+        # Validate scheme
+        if not parsed.scheme:
+            return False, "URL missing scheme (should start with http:// or https://)"
+        if parsed.scheme.lower() not in ('http', 'https'):
+            return False, f"Unsupported URL scheme '{parsed.scheme}' - only http and https are supported"
+
+        # Validate netloc (domain)
+        if not parsed.netloc:
+            return False, "URL missing domain name"
+
+        # Basic domain format check
+        if '.' not in parsed.netloc and parsed.netloc != 'localhost':
+            return False, f"Invalid domain '{parsed.netloc}' - missing top-level domain"
+
+        return True, None
+
     def _sanitize_filename(self, filename: str) -> str:
         """Sanitize filename for filesystem."""
         # Remove or replace invalid characters
@@ -77,6 +112,11 @@ class DocumentDownloader:
         Returns:
             Tuple of (success, file_path, error_message)
         """
+        # Validate URL first
+        is_valid, error = self._validate_url(url)
+        if not is_valid:
+            return False, None, error
+
         try:
             # Create jurisdiction subdirectory
             jur_dir = self.download_dir / jurisdiction.lower()
@@ -152,8 +192,18 @@ class DocumentDownloader:
             if progress_callback:
                 progress_callback(i + 1, total, f"Downloading: {title[:40]}...")
 
+            # Validate URL format first
+            is_valid, validation_error = self._validate_url(url)
+            if not is_valid:
+                results['skipped'].append({
+                    'title': title,
+                    'url': url,
+                    'reason': validation_error
+                })
+                continue
+
             # Skip non-downloadable URLs (web pages that need manual handling)
-            if not url or url.startswith('https://www.gov.uk/guidance/') or \
+            if url.startswith('https://www.gov.uk/guidance/') or \
                url.startswith('https://www.canada.ca/en/') or \
                url.startswith('https://www.tga.gov.au/'):
                 # These are web pages, not direct downloads

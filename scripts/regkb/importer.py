@@ -47,6 +47,53 @@ class DocumentImporter:
         self.archive_dir = config.archive_dir
         self.archive_dir.mkdir(parents=True, exist_ok=True)
 
+    def is_valid_pdf(self, file_path: Path) -> tuple[bool, str]:
+        """
+        Verify that a file is actually a PDF by checking magic bytes.
+
+        Args:
+            file_path: Path to the file to check.
+
+        Returns:
+            Tuple of (is_valid, error_message)
+        """
+        if not file_path.exists():
+            return False, f"File not found: {file_path}"
+
+        if not file_path.is_file():
+            return False, f"Not a file: {file_path}"
+
+        # Check file size (minimum viable PDF is ~67 bytes)
+        try:
+            size = file_path.stat().st_size
+            if size < 67:
+                return False, f"File too small to be a valid PDF ({size} bytes)"
+            if size == 0:
+                return False, "File is empty"
+        except OSError as e:
+            return False, f"Cannot read file: {e}"
+
+        # Check PDF magic bytes (%PDF)
+        try:
+            with open(file_path, "rb") as f:
+                header = f.read(8)
+                if not header.startswith(b"%PDF"):
+                    # Provide helpful message about what the file might be
+                    if header.startswith(b"<!DOCTYPE") or header.startswith(b"<html"):
+                        return False, "File is HTML, not a PDF (may be an error page)"
+                    elif header.startswith(b"PK"):
+                        return False, "File is a ZIP archive, not a PDF"
+                    elif header.startswith(b"\x89PNG"):
+                        return False, "File is a PNG image, not a PDF"
+                    elif header.startswith(b"\xff\xd8\xff"):
+                        return False, "File is a JPEG image, not a PDF"
+                    else:
+                        return False, f"File does not have PDF header (got: {header[:4]!r})"
+        except OSError as e:
+            return False, f"Cannot read file header: {e}"
+
+        return True, ""
+
     def calculate_hash(self, file_path: Path) -> str:
         """
         Calculate SHA-256 hash of a file.
@@ -111,6 +158,17 @@ class DocumentImporter:
 
         for pdf_path in iterator:
             try:
+                # Verify it's actually a PDF
+                is_valid, validation_error = self.is_valid_pdf(pdf_path)
+                if not is_valid:
+                    result.errors += 1
+                    result.error_details.append({
+                        "file": str(pdf_path),
+                        "error": validation_error
+                    })
+                    logger.warning(f"Skipping invalid file {pdf_path.name}: {validation_error}")
+                    continue
+
                 # Calculate hash
                 file_hash = self.calculate_hash(pdf_path)
 
@@ -168,6 +226,12 @@ class DocumentImporter:
         Returns:
             Document ID if successful, None otherwise.
         """
+        # Verify it's actually a PDF
+        is_valid, validation_error = self.is_valid_pdf(file_path)
+        if not is_valid:
+            logger.error(f"Cannot import {file_path}: {validation_error}")
+            return None
+
         try:
             file_hash = self.calculate_hash(file_path)
 
@@ -223,6 +287,13 @@ class DocumentImporter:
             with open(temp_path, "wb") as f:
                 for chunk in response.iter_content(chunk_size=8192):
                     f.write(chunk)
+
+            # Verify downloaded file is actually a PDF
+            is_valid, validation_error = self.is_valid_pdf(temp_path)
+            if not is_valid:
+                temp_path.unlink()  # Clean up invalid file
+                logger.error(f"Downloaded file from {url} is not a valid PDF: {validation_error}")
+                return None
 
             # Set source URL in metadata
             if metadata is None:

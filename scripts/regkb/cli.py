@@ -127,7 +127,7 @@ def _interactive_metadata(file_path: Path) -> dict:
 @click.argument("query", nargs=-1, required=True)
 @click.option("-t", "--type", "doc_type", help="Filter by document type")
 @click.option("-j", "--jurisdiction", help="Filter by jurisdiction")
-@click.option("-n", "--limit", default=10, help="Maximum results")
+@click.option("-n", "--limit", default=10, type=click.IntRange(1, 1000), help="Maximum results (1-1000)")
 @click.option("--all-versions", is_flag=True, help="Include older versions")
 @click.option("--no-excerpt", is_flag=True, help="Don't show excerpts")
 def search(
@@ -145,6 +145,18 @@ def search(
     """
     query_str = " ".join(query)
     click.echo(f"Searching for: {query_str}")
+
+    # Warn about invalid filter values (don't block, just warn)
+    if doc_type:
+        is_valid, error = config.validate_document_type(doc_type)
+        if not is_valid:
+            click.echo(click.style(f"Warning: {error}", fg="yellow"))
+            click.echo("Filter may not match any documents.\n")
+    if jurisdiction:
+        is_valid, error = config.validate_jurisdiction(jurisdiction)
+        if not is_valid:
+            click.echo(click.style(f"Warning: {error}", fg="yellow"))
+            click.echo("Filter may not match any documents.\n")
 
     try:
         results = search_engine.search(
@@ -207,14 +219,22 @@ def add(
     source_str = str(source)
     is_url = source_str.startswith("http://") or source_str.startswith("https://")
 
-    # Build metadata
+    # Build metadata with validation
     metadata = {}
     if title:
         metadata["title"] = title
     if doc_type:
-        metadata["document_type"] = doc_type
+        is_valid, error = config.validate_document_type(doc_type)
+        if not is_valid:
+            click.echo(click.style(error, fg="red"))
+            sys.exit(1)
+        metadata["document_type"] = config.normalize_document_type(doc_type)
     if jurisdiction:
-        metadata["jurisdiction"] = jurisdiction
+        is_valid, error = config.validate_jurisdiction(jurisdiction)
+        if not is_valid:
+            click.echo(click.style(error, fg="red"))
+            sys.exit(1)
+        metadata["jurisdiction"] = config.normalize_jurisdiction(jurisdiction)
     if doc_version:
         metadata["version"] = doc_version
     if source_url:
@@ -242,7 +262,7 @@ def add(
 @click.option("-t", "--type", "doc_type", help="Filter by document type")
 @click.option("-j", "--jurisdiction", help="Filter by jurisdiction")
 @click.option("--all-versions", is_flag=True, help="Include older versions")
-@click.option("-n", "--limit", default=20, help="Maximum results")
+@click.option("-n", "--limit", default=20, type=click.IntRange(1, 1000), help="Maximum results (1-1000)")
 def list_docs(
     doc_type: Optional[str],
     jurisdiction: Optional[str],
@@ -250,6 +270,16 @@ def list_docs(
     limit: int,
 ) -> None:
     """List documents in the knowledge base."""
+    # Warn about invalid filter values
+    if doc_type:
+        is_valid, error = config.validate_document_type(doc_type)
+        if not is_valid:
+            click.echo(click.style(f"Warning: {error}", fg="yellow"))
+    if jurisdiction:
+        is_valid, error = config.validate_jurisdiction(jurisdiction)
+        if not is_valid:
+            click.echo(click.style(f"Warning: {error}", fg="yellow"))
+
     documents = db.list_documents(
         document_type=doc_type,
         jurisdiction=jurisdiction,
@@ -317,13 +347,25 @@ def update(
     superseded_by: Optional[int],
 ) -> None:
     """Update metadata for a document."""
+    # Validate inputs
+    if doc_type:
+        is_valid, error = config.validate_document_type(doc_type)
+        if not is_valid:
+            click.echo(click.style(error, fg="red"))
+            sys.exit(1)
+    if jurisdiction:
+        is_valid, error = config.validate_jurisdiction(jurisdiction)
+        if not is_valid:
+            click.echo(click.style(error, fg="red"))
+            sys.exit(1)
+
     updates = {}
     if title:
         updates["title"] = title
     if doc_type:
-        updates["document_type"] = doc_type
+        updates["document_type"] = config.normalize_document_type(doc_type)
     if jurisdiction:
-        updates["jurisdiction"] = jurisdiction
+        updates["jurisdiction"] = config.normalize_jurisdiction(jurisdiction)
     if doc_version:
         updates["version"] = doc_version
     if description:
@@ -471,7 +513,7 @@ def gap_analysis(
 @click.option("--mandatory-only", is_flag=True, default=True, help="Download only mandatory documents (default)")
 @click.option("--all", "download_all", is_flag=True, help="Download all documents including optional")
 @click.option("--import/--no-import", "do_import", default=True, help="Import downloaded files to KB")
-@click.option("--delay", default=1.5, help="Delay between downloads in seconds")
+@click.option("--delay", default=1.5, type=click.FloatRange(0.0, 60.0), help="Delay between downloads (0-60 seconds)")
 def download_docs(
     jurisdiction: Optional[str],
     mandatory_only: bool,
