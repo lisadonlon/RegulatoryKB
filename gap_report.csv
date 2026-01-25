@@ -1,0 +1,140 @@
+Jurisdiction,Category,Ref ID,Title,Description,Mandatory,Status,KB Match,Confidence
+EU,regulations,EU-REG-001,MDR 2017/745,Medical Device Regulation,Yes,MISSING,,
+EU,regulations,EU-REG-002,IVDR 2017/746,In Vitro Diagnostic Regulation,Yes,MISSING,,
+EU,regulations,EU-REG-003,MDD 93/42/EEC,Medical Device Directive (legacy),No,MISSING,,
+EU,regulations,EU-REG-004,AIMDD 90/385/EEC,Active Implantable Medical Device Directive (legacy),No,MISSING,,
+EU,regulations,EU-REG-005,Common Specifications,EU Common Specifications for Annex XVI devices,Yes,MISSING,,
+EU,mdcg_guidance,EU-MDCG-001,MDCG 2019-11,Guidance on qualification and classification of software,Yes,Found,mdcg 2019 11 en,100%
+EU,mdcg_guidance,EU-MDCG-002,MDCG 2021-24,Guidance on classification of medical devices,Yes,Found,mdcg 2021 24 en,100%
+EU,mdcg_guidance,EU-MDCG-003,MDCG 2022-5,Guidance on borderline products,Yes,MISSING,,
+EU,mdcg_guidance,EU-MDCG-010,MDCG 2020-1,Clinical evaluation of medical device software,Yes,Found,md mdcg 2020 1 guidance clinic eva md software en,100%
+EU,mdcg_guidance,EU-MDCG-011,MDCG 2020-5,Clinical evaluation - equivalence,Yes,Found,md mdcg 2020 5 guidance clinical evaluation equivalence en,100%
+EU,mdcg_guidance,EU-MDCG-012,MDCG 2020-6,Sufficient clinical evidence for legacy devices,Yes,Found,md mdcg 2020 6 guidance sufficient clinical evidence en,100%
+EU,mdcg_guidance,EU-MDCG-013,MDCG 2020-13,Clinical evaluation assessment report template,Yes,MISSING,,
+EU,mdcg_guidance,EU-MDCG-014,MDCG 2024-5,Clinical evaluation guidance update,Yes,Found,mdcg 2024 5 en,100%
+EU,mdcg_guidance,EU-MDCG-020,MDCG 2020-7,PMS plan template,Yes,MISSING,,
+EU,mdcg_guidance,EU-MDCG-021,MDCG 2020-8,PMCF plan and report templates,Yes,MISSING,,
+EU,mdcg_guidance,EU-MDCG-022,MDCG 2023-3,Q&A on vigilance,Yes,Found,mdcg 2023 3 en QA on vigilance,100%
+EU,mdcg_guidance,EU-MDCG-023,MDCG 2024-3,Vigilance guidance update,Yes,Found,mdcg 2024 3 en 0,100%
+EU,mdcg_guidance,EU-MDCG-030,MDCG 2019-9,Summary of Safety and Clinical Performance,Yes,MISSING,,
+EU,mdcg_guidance,EU-MDCG-031,MDCG 2021-8,Q&A on Annex I requirements,Yes,MISSING,,
+EU,mdcg_guidance,EU-MDCG-032,MDCG 2022-14,GSPR mapping guidance,Yes,MISSING,,
+EU,mdcg_guidance,EU-MDCG-040,MDCG 2018-1,UDI guidance,Yes,MISSING,,
+EU,mdcg_guidance,EU-MDCG-041,MDCG 2019-4,EUDAMED timelines,Yes,MISSING,,
+EU,mdcg_guidance,EU-MDCG-042,MDCG 2021-13,Q&A on registration EUDAMED,Yes,MISSING,,
+EU,mdcg_guidance,EU-MDCG-050,MDCG 2019-16,Cybersecurity guidance,Yes,MISSING,,
+EU,mdcg_guidance,EU-MDCG-051,MDCG 2023-4,Software lifecycle guidance,Yes,Found,md mdcg 2023 4 software en,100%
+EU,mdcg_guidance,EU-MDCG-060,MDCG 2019-6,Q&A on Article 97,No,MISSING,,
+EU,mdcg_guidance,EU-MDCG-061,MDCG 2022-4,Significant changes guidance,Yes,MISSING,,
+EU,mdcg_guidance,EU-MDCG-062,MDCG 2023-7,Certification transfer guidance,Yes,Found,mdcg 2023 7 en,100%
+EU,mdcg_guidance,EU-MDCG-070,MDCG 2023-5,Annex XVI classification guidance,No,Found,mdcg 2023 5 en Classification XVI,100%
+EU,mdcg_guidance,EU-MDCG-080,MDCG 2019-7,Guidance on labelling,Yes,MISSING,,
+EU,mdcg_guidance,EU-MDCG-081,MDCG 2021-21,eIFU guidance,Yes,MISSING,,
+EU,mdcg_guidance,EU-MDCG-090,MDCG 2020-3,Legacy devices transition,Yes,MISSING,,
+EU,mdcg_guidance,EU-MDCG-091,MDCG 2024-2,Extended transition timelines,Yes,MISSING,,
+EU,mdcg_guidance,EU-MDCG-092,MDCG 2025-4,Latest transition Q&A,Yes,Found,mdcg 2025 4 en,100%
+EU,mdcg_guidance,EU-MDCG-093,MDCG 2025-6,Stockpiling guidance,Yes,Found,mdcg 2025 6 en,100%
+EU,mdcg_guidance,EU-MDCG-094,MDCG 2025-9,PMCF for legacy devices,Yes,Found,mdcg 2025 9,100%
+EU,other_guidance,EU-OTH-001,Blue Guide 2022,Implementation of EU product rules,Yes,MISSING,,
+EU,other_guidance,EU-OTH-002,MEDDEV 2.7/1 rev 4,Clinical evaluation guidance (legacy but useful),No,MISSING,,
+EU,other_guidance,EU-OTH-003,Team-NB Position Papers,Notified body consensus positions,No,MISSING,,
+EU,other_guidance,EU-OTH-004,Borderline Manual,EC borderline and classification manual,Yes,MISSING,,
+UK,regulations,UK-REG-001,UK MDR 2002 (as amended),UK Medical Device Regulations,Yes,MISSING,,
+UK,regulations,UK-REG-002,UKCA Marking Requirements,UK Conformity Assessment requirements,Yes,MISSING,,
+UK,guidance,UK-GUID-001,MHRA Guidance: Regulating medical devices in the UK,Core MHRA guidance,Yes,MISSING,,
+UK,guidance,UK-GUID-002,MHRA Software as Medical Device Guidance,SaMD classification and requirements,Yes,MISSING,,
+UK,guidance,UK-GUID-003,MHRA Clinical Investigation Guidance,Requirements for clinical studies,Yes,MISSING,,
+UK,guidance,UK-GUID-004,MHRA Post-Market Surveillance Guidance,UK PMS requirements,Yes,MISSING,,
+UK,guidance,UK-GUID-005,MHRA Adverse Incident Reporting,UK vigilance requirements,Yes,MISSING,,
+UK,guidance,UK-GUID-006,MHRA UKCA Transition Guidance,Transition from CE to UKCA,Yes,MISSING,,
+US,regulations,US-REG-001,21 CFR Part 820,Quality System Regulation,Yes,MISSING,,
+US,regulations,US-REG-002,21 CFR Part 803,Medical Device Reporting,Yes,MISSING,,
+US,regulations,US-REG-003,21 CFR Part 806,Medical Device Corrections and Removals,Yes,MISSING,,
+US,regulations,US-REG-004,21 CFR Part 807,Establishment Registration and Device Listing,Yes,MISSING,,
+US,regulations,US-REG-005,21 CFR Part 812,Investigational Device Exemptions,Yes,MISSING,,
+US,regulations,US-REG-006,21 CFR Part 814,Premarket Approval,Yes,MISSING,,
+US,regulations,US-REG-007,21 CFR Part 830,Unique Device Identification,Yes,MISSING,,
+US,regulations,US-REG-008,21 CFR Part 860,Medical Device Classification Procedures,Yes,MISSING,,
+US,guidance,US-GUID-001,510(k) Program Guidance,Traditional 510(k) submission guidance,Yes,MISSING,,
+US,guidance,US-GUID-002,Abbreviated 510(k) Guidance,Abbreviated 510(k) pathway,Yes,MISSING,,
+US,guidance,US-GUID-003,Special 510(k) Guidance,Special 510(k) for design changes,Yes,MISSING,,
+US,guidance,US-GUID-004,Substantial Equivalence Guidance,Determining substantial equivalence,Yes,MISSING,,
+US,guidance,US-GUID-005,Refuse to Accept Policy for 510(k)s,510(k) submission completeness criteria,Yes,MISSING,,
+US,guidance,US-GUID-010,Software as Medical Device Guidance,FDA SaMD guidance,Yes,MISSING,,
+US,guidance,US-GUID-011,Clinical Decision Support Software,CDS exclusion criteria,Yes,MISSING,,
+US,guidance,US-GUID-012,General Wellness Policy,Low-risk device exclusions,Yes,MISSING,,
+US,guidance,US-GUID-013,Software Premarket Submissions,Documentation for software submissions,Yes,MISSING,,
+US,guidance,US-GUID-014,Cybersecurity Premarket Guidance,Cybersecurity requirements,Yes,MISSING,,
+US,guidance,US-GUID-015,Postmarket Cybersecurity Guidance,Postmarket cybersecurity management,Yes,MISSING,,
+US,guidance,US-GUID-020,IDE Guidance,Investigational Device Exemption,Yes,MISSING,,
+US,guidance,US-GUID-021,Breakthrough Devices Guidance,Breakthrough Device Designation,Yes,MISSING,,
+US,guidance,US-GUID-022,De Novo Classification Guidance,De Novo pathway,Yes,MISSING,,
+US,guidance,US-GUID-030,Medical Device Labeling Guidance,General labeling requirements,Yes,MISSING,,
+US,guidance,US-GUID-031,UDI Guidance,Unique Device Identifier requirements,Yes,MISSING,,
+US,guidance,US-GUID-040,Benefit-Risk Guidance,Benefit-risk assessment framework,Yes,MISSING,,
+US,guidance,US-GUID-050,Biocompatibility Guidance,Use of ISO 10993-1,Yes,MISSING,,
+US,guidance,US-GUID-060,Sterility Guidance,Submission documentation for sterility,Yes,MISSING,,
+US,guidance,US-GUID-070,MDR Guidance,Medical Device Reporting requirements,Yes,MISSING,,
+US,guidance,US-GUID-071,Corrections and Removals Guidance,Recall procedures,Yes,MISSING,,
+Canada,regulations,CA-REG-001,Medical Devices Regulations SOR/98-282,Canadian Medical Devices Regulations,Yes,MISSING,,
+Canada,regulations,CA-REG-002,Food and Drugs Act,Enabling legislation,Yes,MISSING,,
+Canada,guidance,CA-GUID-001,Medical Device Licence Applications,MDEL application guidance,Yes,MISSING,,
+Canada,guidance,CA-GUID-002,Classification Rules,Device classification guidance,Yes,MISSING,,
+Canada,guidance,CA-GUID-003,Clinical Evidence Requirements,Clinical evidence for submissions,Yes,MISSING,,
+Canada,guidance,CA-GUID-004,Software as Medical Device,SaMD guidance for Canada,Yes,MISSING,,
+Canada,guidance,CA-GUID-005,Problem Reporting,Mandatory problem reporting,Yes,MISSING,,
+Canada,guidance,CA-GUID-006,Recalls and Corrections,Recall procedures,Yes,MISSING,,
+Australia,regulations,AU-REG-001,Therapeutic Goods Act 1989,Primary legislation,Yes,MISSING,,
+Australia,regulations,AU-REG-002,Therapeutic Goods (Medical Devices) Regulations 2002,Device-specific regulations,Yes,MISSING,,
+Australia,guidance,AU-GUID-001,Australian medical device regulation overview,TGA device regulation guidance,Yes,MISSING,,
+Australia,guidance,AU-GUID-002,Essential Principles checklist,Australian Essential Principles,Yes,MISSING,,
+Australia,guidance,AU-GUID-003,Clinical evidence guidelines,Clinical evidence requirements,Yes,MISSING,,
+Australia,guidance,AU-GUID-004,Software medical devices,SaMD guidance Australia,Yes,MISSING,,
+Australia,guidance,AU-GUID-005,Post-market requirements,Australian PMS/vigilance,Yes,MISSING,,
+Australia,guidance,AU-GUID-006,Conformity assessment procedures,CA body requirements,Yes,MISSING,,
+ISO,qms,ISO-QMS-001,ISO 13485:2016,Medical devices QMS,Yes,Found,ISO 13485 2016,100%
+ISO,qms,ISO-QMS-002,ISO 13485 Practical Guide,Implementation guidance,No,Found,ISO 13485 2016,95%
+ISO,risk,ISO-RISK-001,ISO 14971:2019,Risk management,Yes,Found,I.S.ENISO14971 2019+A11 2021,90%
+ISO,risk,ISO-RISK-002,ISO/TR 24971:2020,Risk management guidance,Yes,MISSING,,
+ISO,clinical,ISO-CLIN-001,ISO 14155:2020,Clinical investigations,Yes,Found,I.S.ENISO14155 2020+COR 2020,90%
+ISO,software,ISO-SW-001,IEC 62304:2006+A1:2015,Medical device software lifecycle,Yes,Found,I.S.EN62304 2006+A1 2015,98%
+ISO,software,ISO-SW-002,IEC 82304-1:2016,Health software requirements,Yes,MISSING,,
+ISO,software,ISO-SW-003,IEC 62443 series,Cybersecurity standards,No,MISSING,,
+ISO,biocompatibility,ISO-BIO-001,ISO 10993-1:2018,Biological evaluation - guidance,Yes,Found,I.S.ENISO10993 1 2020+COR 2021,88%
+ISO,biocompatibility,ISO-BIO-002,ISO 10993-5,Cytotoxicity testing,Yes,Found,I.S.ENISO10993 1 2020+COR 2021,80%
+ISO,biocompatibility,ISO-BIO-003,ISO 10993-10,Sensitization testing,Yes,Found,I.S.ENISO10993 1 2020+COR 2021,80%
+ISO,biocompatibility,ISO-BIO-004,ISO 10993-11,Systemic toxicity testing,Yes,Found,I.S.ENISO10993 1 2020+COR 2021,80%
+ISO,biocompatibility,ISO-BIO-005,ISO 10993-18,Chemical characterization,Yes,Found,I.S.ENISO10993 1 2020+COR 2021,80%
+ISO,biocompatibility,ISO-BIO-006,ISO/TS 10993-19,Material characterization,No,MISSING,,
+ISO,biocompatibility,ISO-BIO-007,ISO/TS 10993-20,Immunotoxicity testing,No,MISSING,,
+ISO,sterilization,ISO-STER-001,ISO 11135,EO sterilization,No,MISSING,,
+ISO,sterilization,ISO-STER-002,ISO 11137 series,Radiation sterilization,No,MISSING,,
+ISO,sterilization,ISO-STER-003,ISO 17665-1,Moist heat sterilization,No,MISSING,,
+ISO,sterilization,ISO-STER-004,ISO 11607-1,Sterile barrier packaging,No,MISSING,,
+ISO,usability,ISO-USE-001,IEC 62366-1:2015,Usability engineering,Yes,MISSING,,
+ISO,usability,ISO-USE-002,IEC/TR 62366-2,Usability guidance,No,MISSING,,
+ISO,electrical,ISO-ELEC-001,IEC 60601-1,General safety and essential performance,Yes,MISSING,,
+ISO,electrical,ISO-ELEC-002,IEC 60601-1-2,EMC requirements,Yes,MISSING,,
+ISO,electrical,ISO-ELEC-003,IEC 60601-1-6,Usability,Yes,MISSING,,
+ISO,electrical,ISO-ELEC-004,IEC 60601-1-11,Home healthcare environment,No,MISSING,,
+ISO,labeling,ISO-LAB-001,ISO 15223-1,Symbols for labeling,Yes,MISSING,,
+ISO,labeling,ISO-LAB-002,IEC 60417,Graphical symbols,Yes,MISSING,,
+ISO,other,ISO-OTH-001,ISO 11070,Intravascular catheters,No,Found,ISO 11070 2014 Amd 1 2018 ed.2 id.72859 Publication PDF (en) (002),100%
+ISO,other,ISO-OTH-002,ISO 18562 series,Biocompatibility of breathing gas pathways,No,Found,EVS EN ISO 18562 1;2024 en,100%
+ISO,other,ISO-OTH-003,ISO 80369 series,Small-bore connectors,No,MISSING,,
+IMDRF,guidance,IMDRF-001,IMDRF SaMD Framework,Software as Medical Device classification,Yes,MISSING,,
+IMDRF,guidance,IMDRF-002,IMDRF SaMD Clinical Evaluation,Clinical evidence for SaMD,Yes,MISSING,,
+IMDRF,guidance,IMDRF-003,IMDRF SaMD Risk Categorization,SaMD risk framework,Yes,MISSING,,
+IMDRF,guidance,IMDRF-004,IMDRF NCAR Exchange,Regulatory authority collaboration,No,MISSING,,
+IMDRF,guidance,IMDRF-005,IMDRF Adverse Event Terminology,Standardized AE coding,Yes,MISSING,,
+IMDRF,guidance,IMDRF-006,IMDRF UDI Guidance,Global UDI framework,Yes,MISSING,,
+IMDRF,guidance,IMDRF-007,IMDRF MDSAP,Single Audit Program requirements,Yes,MISSING,,
+IMDRF,guidance,IMDRF-008,IMDRF Cybersecurity Principles,Global cybersecurity guidance,Yes,MISSING,,
+MDSAP,guidance,MDSAP-001,MDSAP Audit Model,Core audit approach,Yes,MISSING,,
+MDSAP,guidance,MDSAP-002,MDSAP QMS Companion,QMS requirements by jurisdiction,Yes,MISSING,,
+MDSAP,guidance,MDSAP-003,MDSAP Grading System,Nonconformity grading,Yes,MISSING,,
+MDSAP,guidance,MDSAP-004,MDSAP AU P0002,Australia audit approach,Yes,MISSING,,
+MDSAP,guidance,MDSAP-005,MDSAP BR P0002,Brazil audit approach,No,MISSING,,
+MDSAP,guidance,MDSAP-006,MDSAP CA P0002,Canada audit approach,Yes,MISSING,,
+MDSAP,guidance,MDSAP-007,MDSAP JP P0002,Japan audit approach,No,MISSING,,
+MDSAP,guidance,MDSAP-008,MDSAP US P0002,US audit approach,Yes,MISSING,,

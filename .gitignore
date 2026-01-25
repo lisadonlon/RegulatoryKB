@@ -1,0 +1,75 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.idea/
+.vscode/
+.claude/
+*.swp
+*.swo
+*~
+
+# Database files (keep structure, ignore data)
+db/*.db
+db/chroma/
+db/backups/*.db
+!db/.gitkeep
+!db/backups/.gitkeep
+
+# Windows artifacts
+nul
+
+# Logs
+logs/*.log
+!logs/.gitkeep
+
+# Archive contents (PDFs are user data)
+archive/**/*
+!archive/.gitkeep
+!archive/**/.gitkeep
+
+# Extracted text (generated)
+extracted/*.md
+!extracted/.gitkeep
+
+# Temporary files
+temp/
+*.tmp
+*.temp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# mypy
+.mypy_cache/

@@ -1,0 +1,73 @@
+# Regulatory Knowledge Base Configuration
+# ========================================
+# This file contains settings for the RegKB system.
+# All paths are relative to the base directory unless absolute.
+
+# Directory paths (relative to base_dir)
+paths:
+  archive: "archive"
+  extracted: "extracted"
+  database: "db/regulatory.db"
+  backups: "db/backups"
+  logs: "logs"
+
+# Valid document types
+# Add or modify as needed for your regulatory domain
+document_types:
+  - guidance
+  - standard
+  - regulation
+  - legislation
+  - policy
+  - procedure
+  - report
+  - white_paper
+  - technical_note
+  - advisory
+  - other
+
+# Valid jurisdictions/regulatory bodies
+# Add or modify based on your needs
+jurisdictions:
+  - EU
+  - FDA
+  - ISO
+  - ICH
+  - UK
+  - Ireland
+  - WHO
+  - Health Canada
+  - TGA
+  - PMDA
+  - EMA
+  - MHRA
+  - HPRA
+  - Other
+
+# Import settings
+import:
+  # Number of files to process in memory at once
+  batch_size: 50
+  # Skip files that are already in the database
+  skip_duplicates: true
+  # Automatically extract text after import
+  extract_text: true
+
+# Search settings
+search:
+  # Default number of results to return
+  default_limit: 10
+  # Only show latest versions by default
+  show_latest_only: true
+  # Sentence transformer model for semantic search
+  # Options: all-MiniLM-L6-v2 (fast), all-mpnet-base-v2 (better quality)
+  embedding_model: "all-MiniLM-L6-v2"
+
+# Logging configuration
+logging:
+  # Log level: DEBUG, INFO, WARNING, ERROR
+  level: "INFO"
+  # Log message format
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  # Enable writing logs to file
+  file_enabled: true

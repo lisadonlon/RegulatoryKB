@@ -1,0 +1,101 @@
+Jurisdiction,Category,Title,Description,URL,Mandatory,Free,Notes
+EU,regulations,MDR 2017/745,Medical Device Regulation (consolidated version),https://eur-lex.europa.eu/legal-content/EN/TXT/PDF/?uri=CELEX:02017R0745-20230320,Yes,Yes,
+EU,regulations,IVDR 2017/746,In Vitro Diagnostic Regulation (consolidated),https://eur-lex.europa.eu/legal-content/EN/TXT/PDF/?uri=CELEX:02017R0746-20230320,Yes,Yes,
+EU,regulations,MDD 93/42/EEC,"Medical Device Directive (legacy, for reference)",https://eur-lex.europa.eu/legal-content/EN/TXT/PDF/?uri=CELEX:01993L0042-20071011,No,Yes,
+EU,regulations,AIMDD 90/385/EEC,Active Implantable Medical Device Directive (legacy),https://eur-lex.europa.eu/legal-content/EN/TXT/PDF/?uri=CELEX:01990L0385-20071011,No,Yes,
+EU,mdcg_guidance,MDCG 2022-5,Guidance on borderline between medical devices and other products,https://health.ec.europa.eu/system/files/2022-10/mdcg_2022-5_en.pdf,Yes,Yes,
+EU,mdcg_guidance,MDCG 2020-13,Clinical evaluation assessment report template,https://health.ec.europa.eu/system/files/2020-09/md_2020-13_cea_report_template_en_0.pdf,Yes,Yes,
+EU,mdcg_guidance,MDCG 2020-7,Post-market surveillance plan template,https://health.ec.europa.eu/system/files/2020-09/md_2020-7_guidance_pms_plan_template_en_0.pdf,Yes,Yes,
+EU,mdcg_guidance,MDCG 2020-8,PMCF plan and evaluation report templates,https://health.ec.europa.eu/system/files/2020-09/md_2020-8_guidance_pmcf_plan_template_en_0.pdf,Yes,Yes,
+EU,mdcg_guidance,MDCG 2019-9,Summary of Safety and Clinical Performance,https://health.ec.europa.eu/system/files/2020-09/md_mdcg_2019_9_sscp_en_0.pdf,Yes,Yes,
+EU,mdcg_guidance,MDCG 2021-8,Q&A on Annex I General Safety and Performance Requirements,https://health.ec.europa.eu/system/files/2021-05/mdcg_2021-8_en_0.pdf,Yes,Yes,
+EU,mdcg_guidance,MDCG 2022-14,GSPR mapping guidance,https://health.ec.europa.eu/system/files/2022-11/mdcg_2022-14_en.pdf,Yes,Yes,
+EU,mdcg_guidance,MDCG 2018-1 rev 3,Guidance on UDI for devices under IVDR and MDR,https://health.ec.europa.eu/system/files/2020-09/md_mdcg_2018-1_v3_udi_guidance_en_0.pdf,Yes,Yes,
+EU,mdcg_guidance,MDCG 2019-4,EUDAMED timelines,https://health.ec.europa.eu/system/files/2021-10/mdcg_2019-4_en_0.pdf,Yes,Yes,
+EU,mdcg_guidance,MDCG 2021-13,Q&A on registration of legacy devices in EUDAMED,https://health.ec.europa.eu/system/files/2021-10/mdcg_2021-13_en_0.pdf,Yes,Yes,
+EU,mdcg_guidance,MDCG 2019-16 rev 1,Guidance on cybersecurity for medical devices,https://health.ec.europa.eu/system/files/2020-09/md_cybersecurity_en_0.pdf,Yes,Yes,
+EU,mdcg_guidance,MDCG 2020-3 rev 1,Guidance on significant changes,https://health.ec.europa.eu/system/files/2022-10/mdcg_2020-3_en.pdf,Yes,Yes,
+EU,mdcg_guidance,MDCG 2022-4,Guidance on appropriate surveillance regarding significant changes,https://health.ec.europa.eu/system/files/2022-05/mdcg_2022-4_en.pdf,Yes,Yes,
+EU,mdcg_guidance,MDCG 2019-7,Guidance on Article 10(11) - languages for IFU,https://health.ec.europa.eu/system/files/2020-09/md_mdcg_2019_7_en_0.pdf,Yes,Yes,
+EU,mdcg_guidance,MDCG 2021-21,Guidance on electronic instructions for use (eIFU),https://health.ec.europa.eu/system/files/2021-10/mdcg_2021-21_en_0.pdf,Yes,Yes,
+EU,mdcg_guidance,MDCG 2020-3,Legacy devices transition guidance,https://health.ec.europa.eu/system/files/2020-09/md_mdcg_2020_3_en_0.pdf,Yes,Yes,
+EU,mdcg_guidance,MDCG 2024-2,Extended transition timelines guidance,https://health.ec.europa.eu/system/files/2024-01/mdcg_2024-2_en.pdf,Yes,Yes,
+EU,other_guidance,Blue Guide 2022,The 'Blue Guide' on the implementation of EU product rules,https://eur-lex.europa.eu/legal-content/EN/TXT/PDF/?uri=CELEX:52022XC0629(04),Yes,Yes,
+EU,other_guidance,MEDDEV 2.7/1 rev 4,Clinical evaluation guidance (legacy but still referenced),https://ec.europa.eu/docsroom/documents/17522/attachments/1/translations/en/renditions/native,No,Yes,
+UK,regulations,UK MDR 2002 (as amended 2024),The Medical Devices Regulations 2002 (consolidated),https://www.legislation.gov.uk/uksi/2002/618/pdfs/uksi_20020618_en.pdf,Yes,Yes,
+UK,guidance,Regulating medical devices in the UK,MHRA core guidance for medical device regulation,https://www.gov.uk/guidance/regulating-medical-devices-in-the-uk,Yes,Yes,Web page - multiple PDFs available from this link
+UK,guidance,Software and AI as a Medical Device,MHRA guidance on software qualification and classification,https://www.gov.uk/government/publications/software-and-artificial-intelligence-ai-as-a-medical-device/software-and-ai-as-a-medical-device,Yes,Yes,
+UK,guidance,Clinical investigations guidance,MHRA guidance on clinical investigations for medical devices,https://www.gov.uk/guidance/clinical-investigations-for-medical-devices,Yes,Yes,
+UK,guidance,Post-market surveillance for medical devices,MHRA requirements for PMS,https://www.gov.uk/guidance/post-market-surveillance-of-medical-devices,Yes,Yes,
+UK,guidance,Report a problem with a medicine or medical device,Yellow Card reporting requirements,https://www.gov.uk/guidance/report-a-problem-with-a-medicine-or-medical-device,Yes,Yes,
+UK,guidance,Using the UKCA marking,UKCA requirements for medical devices,https://www.gov.uk/guidance/using-the-ukca-marking,Yes,Yes,
+US,regulations,21 CFR Part 820,Quality System Regulation,https://www.ecfr.gov/current/title-21/chapter-I/subchapter-H/part-820,Yes,Yes,
+US,regulations,21 CFR Part 803,Medical Device Reporting,https://www.ecfr.gov/current/title-21/chapter-I/subchapter-H/part-803,Yes,Yes,
+US,regulations,21 CFR Part 806,Medical Device Corrections and Removals,https://www.ecfr.gov/current/title-21/chapter-I/subchapter-H/part-806,Yes,Yes,
+US,regulations,21 CFR Part 807,Establishment Registration and Device Listing,https://www.ecfr.gov/current/title-21/chapter-I/subchapter-H/part-807,Yes,Yes,
+US,regulations,21 CFR Part 812,Investigational Device Exemptions,https://www.ecfr.gov/current/title-21/chapter-I/subchapter-H/part-812,Yes,Yes,
+US,regulations,21 CFR Part 814,Premarket Approval of Medical Devices,https://www.ecfr.gov/current/title-21/chapter-I/subchapter-H/part-814,Yes,Yes,
+US,regulations,21 CFR Part 830,Unique Device Identification,https://www.ecfr.gov/current/title-21/chapter-I/subchapter-H/part-830,Yes,Yes,
+US,regulations,21 CFR Part 860,Medical Device Classification Procedures,https://www.ecfr.gov/current/title-21/chapter-I/subchapter-H/part-860,Yes,Yes,
+US,guidance,The 510(k) Program: Evaluating Substantial Equivalence,Core 510(k) guidance document,https://www.fda.gov/media/82395/download,Yes,Yes,
+US,guidance,The Abbreviated 510(k) Program,Abbreviated 510(k) pathway guidance,https://www.fda.gov/media/72647/download,Yes,Yes,
+US,guidance,The Special 510(k) Program,Special 510(k) for design control changes,https://www.fda.gov/media/116418/download,Yes,Yes,
+US,guidance,Refuse to Accept Policy for 510(k)s,510(k) submission completeness checklist,https://www.fda.gov/media/83888/download,Yes,Yes,
+US,guidance,Policy for Device Software Functions (SaMD),FDA policy on software as medical device,https://www.fda.gov/media/119722/download,Yes,Yes,
+US,guidance,Clinical Decision Support Software,CDS guidance and exclusion criteria,https://www.fda.gov/media/109618/download,Yes,Yes,
+US,guidance,General Wellness: Policy for Low Risk Devices,General wellness device exclusions,https://www.fda.gov/media/90652/download,Yes,Yes,
+US,guidance,Content of Premarket Submissions for Device Software Functions,Software documentation requirements,https://www.fda.gov/media/153781/download,Yes,Yes,
+US,guidance,Cybersecurity in Medical Devices: Premarket Submissions,Premarket cybersecurity guidance (2023),https://www.fda.gov/media/166772/download,Yes,Yes,
+US,guidance,Postmarket Management of Cybersecurity in Medical Devices,Postmarket cybersecurity guidance,https://www.fda.gov/media/95862/download,Yes,Yes,
+US,guidance,IDE Applications for Early Feasibility Studies,Early feasibility IDE guidance,https://www.fda.gov/media/81784/download,Yes,Yes,
+US,guidance,Breakthrough Devices Program,Breakthrough device designation guidance,https://www.fda.gov/media/108135/download,Yes,Yes,
+US,guidance,De Novo Classification Process,De Novo pathway guidance,https://www.fda.gov/media/72674/download,Yes,Yes,
+US,guidance,Device Labeling Guidance,General labeling requirements 21 CFR 801,https://www.fda.gov/media/72025/download,Yes,Yes,
+US,guidance,UDI System: Final Rule FAQ,UDI implementation guidance,https://www.fda.gov/media/87546/download,Yes,Yes,
+US,guidance,Benefit-Risk Guidance for Premarket Approval,Benefit-risk framework,https://www.fda.gov/media/99769/download,Yes,Yes,
+US,guidance,Use of ISO 10993-1 Biocompatibility Guidance,Biocompatibility evaluation guidance,https://www.fda.gov/media/85865/download,Yes,Yes,
+US,guidance,Submission and Review of Sterility Information,Sterility documentation guidance,https://www.fda.gov/media/74445/download,Yes,Yes,
+US,guidance,Medical Device Reporting for Manufacturers,MDR requirements guidance,https://www.fda.gov/media/86420/download,Yes,Yes,
+US,guidance,Medical Device Corrections and Removals,Recall guidance,https://www.fda.gov/media/72035/download,Yes,Yes,
+Canada,regulations,Medical Devices Regulations SOR/98-282,Canadian Medical Devices Regulations,https://laws-lois.justice.gc.ca/PDF/SOR-98-282.pdf,Yes,Yes,
+Canada,regulations,Food and Drugs Act,Enabling legislation for medical devices,https://laws-lois.justice.gc.ca/PDF/F-27.pdf,Yes,Yes,
+Canada,guidance,Medical Device Licence Application Guide,How to apply for an MDL,https://www.canada.ca/en/health-canada/services/drugs-health-products/medical-devices/application-information/guidance-documents/guidance-document-medical-device-licence-application.html,Yes,Yes,
+Canada,guidance,Classification of Medical Devices,Device classification guidance,https://www.canada.ca/en/health-canada/services/drugs-health-products/medical-devices/application-information/guidance-documents/guidance-classification-medical-devices.html,Yes,Yes,
+Canada,guidance,Software as a Medical Device (SaMD),SaMD classification and requirements,https://www.canada.ca/en/health-canada/services/drugs-health-products/medical-devices/application-information/guidance-documents/software-medical-device-guidance.html,Yes,Yes,
+Canada,guidance,Mandatory Problem Reporting,Adverse event reporting requirements,https://www.canada.ca/en/health-canada/services/drugs-health-products/medical-devices/reports-publications/regulations-guidance/mandatory-problem-reporting-medical-devices.html,Yes,Yes,
+Canada,guidance,Medical Device Recalls,Recall requirements,https://www.canada.ca/en/health-canada/services/drugs-health-products/compliance-enforcement/information-health-product/medical-devices/medical-device-recall-guidance.html,Yes,Yes,
+Australia,regulations,Therapeutic Goods Act 1989,Primary legislation for therapeutic goods,https://www.legislation.gov.au/Details/C2024C00166,Yes,Yes,Link to legislation.gov.au - select PDF download
+Australia,regulations,Therapeutic Goods (Medical Devices) Regulations 2002,Medical device specific regulations,https://www.legislation.gov.au/Details/F2023C00959,Yes,Yes,
+Australia,guidance,Australian regulatory guidelines for medical devices (ARGMD),Core TGA guidance for medical devices,https://www.tga.gov.au/how-we-regulate/manufacturing/manufacture-medical-device/australian-regulatory-guidelines-medical-devices,Yes,Yes,
+Australia,guidance,Essential Principles Checklist,Australian Essential Principles compliance,https://www.tga.gov.au/resources/resource/forms/conformity-assessment-medical-device-application-forms,Yes,Yes,
+Australia,guidance,Clinical evidence guidelines for medical devices,Clinical evidence requirements,https://www.tga.gov.au/resources/resource/guidance/clinical-evidence-guidelines-medical-devices,Yes,Yes,
+Australia,guidance,Software as a medical device,TGA SaMD guidance,https://www.tga.gov.au/resources/resource/guidance/software-based-medical-devices,Yes,Yes,
+Australia,guidance,Post-market requirements,Australian PMS and vigilance,https://www.tga.gov.au/how-we-regulate/monitoring-and-post-market-management/medical-devices,Yes,Yes,
+ISO,standards,ISO 14971:2019,Risk management for medical devices,https://www.iso.org/standard/72704.html,Yes,No,CHF 187
+ISO,standards,ISO/TR 24971:2020,Risk management guidance (application of ISO 14971),https://www.iso.org/standard/74437.html,Yes,No,CHF 187
+ISO,standards,IEC 62304:2006+A1:2015,Medical device software lifecycle processes,https://www.iso.org/standard/64686.html,Yes,No,CHF 250
+ISO,standards,IEC 82304-1:2016,Health software - General requirements for product safety,https://www.iso.org/standard/59543.html,Yes,No,CHF 118
+ISO,standards,IEC 62366-1:2015+A1:2020,Usability engineering - Application to medical devices,https://www.iso.org/standard/77436.html,Yes,No,CHF 200
+ISO,standards,IEC 60601-1:2005+A1:2012+A2:2020,Medical electrical equipment - General requirements,https://www.iso.org/standard/72411.html,Yes,No,CHF 444
+ISO,standards,IEC 60601-1-2:2014+A1:2020,Medical electrical equipment - EMC requirements,https://www.iso.org/standard/79570.html,Yes,No,CHF 348
+ISO,standards,ISO 15223-1:2021,Symbols to be used with information supplied by manufacturer,https://www.iso.org/standard/77326.html,Yes,No,CHF 187
+ISO,standards,IEC 60417 (database),Graphical symbols for use on equipment,https://www.iso.org/standard/77325.html,Yes,No,Subscription
+ISO,standards,ISO 10993-5:2009,Biological evaluation - Tests for in vitro cytotoxicity,https://www.iso.org/standard/36406.html,Yes,No,CHF 118
+ISO,standards,ISO 10993-10:2021,Biological evaluation - Skin sensitization,https://www.iso.org/standard/75279.html,Yes,No,CHF 167
+ISO,standards,ISO 10993-11:2017,Biological evaluation - Systemic toxicity,https://www.iso.org/standard/68426.html,Yes,No,CHF 167
+ISO,standards,ISO 10993-18:2020,Biological evaluation - Chemical characterization,https://www.iso.org/standard/64750.html,Yes,No,CHF 200
+ISO,standards,ISO 11135:2014,Sterilization - Ethylene oxide,https://www.iso.org/standard/56137.html,No,No,CHF 167
+ISO,standards,ISO 11137-1:2006,Sterilization - Radiation - Part 1: Requirements,https://www.iso.org/standard/33952.html,No,No,CHF 138
+ISO,standards,ISO 11607-1:2019,Packaging for terminally sterilized devices,https://www.iso.org/standard/70799.html,No,No,CHF 138
+IMDRF,guidance,IMDRF SaMD: Key Definitions,Software as Medical Device - framework definitions,https://www.imdrf.org/sites/default/files/docs/imdrf/final/technical/imdrf-tech-131209-samd-key-definitions-140901.pdf,Yes,Yes,
+IMDRF,guidance,IMDRF SaMD: Risk Categorization Framework,SaMD risk classification,https://www.imdrf.org/sites/default/files/docs/imdrf/final/technical/imdrf-tech-140918-samd-framework-risk-categorization-141013.pdf,Yes,Yes,
+IMDRF,guidance,IMDRF SaMD: Clinical Evaluation,Clinical evaluation of SaMD,https://www.imdrf.org/sites/default/files/docs/imdrf/final/technical/imdrf-tech-170921-samd-n41-clinical-evaluation_1.pdf,Yes,Yes,
+IMDRF,guidance,IMDRF Adverse Event Terminology,Standardized terminology for adverse events,https://www.imdrf.org/sites/default/files/docs/imdrf/final/technical/imdrf-tech-200318-ae-terminology-n43.pdf,Yes,Yes,
+IMDRF,guidance,IMDRF UDI Guidance,Unique Device Identification global framework,https://www.imdrf.org/sites/default/files/docs/imdrf/final/technical/imdrf-tech-190321-udi-application-guide.pdf,Yes,Yes,
+IMDRF,guidance,IMDRF Principles of Cybersecurity,Cybersecurity principles for medical devices,https://www.imdrf.org/sites/default/files/docs/imdrf/final/technical/imdrf-tech-200318-pp-mdc-n60.pdf,Yes,Yes,
+MDSAP,guidance,MDSAP Audit Model,Core MDSAP audit approach,https://www.fda.gov/media/107631/download,Yes,Yes,
+MDSAP,guidance,MDSAP QMS Companion Document,QMS requirements by jurisdiction,https://www.fda.gov/media/107633/download,Yes,Yes,
+MDSAP,guidance,MDSAP Nonconformity Grading System,How nonconformities are graded,https://www.fda.gov/media/107635/download,Yes,Yes,
+MDSAP,guidance,MDSAP AU P0002 - Australia Audit Approach,Australian regulatory requirements,https://www.tga.gov.au/sites/default/files/mdsap-au-p0002.pdf,Yes,Yes,
+MDSAP,guidance,MDSAP CA P0002 - Canada Audit Approach,Canadian regulatory requirements,https://www.canada.ca/content/dam/hc-sc/documents/services/drugs-health-products/compliance-enforcement/international-activities/ca-p0002.pdf,Yes,Yes,
+MDSAP,guidance,MDSAP US P0002 - US Audit Approach,US FDA regulatory requirements,https://www.fda.gov/media/107634/download,Yes,Yes,
