@@ -71,3 +71,217 @@ logging:
   format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
   # Enable writing logs to file
   file_enabled: true
+
+# ============================================================================
+# REGULATORY INTELLIGENCE SETTINGS
+# ============================================================================
+# Automated monitoring and analysis of regulatory updates
+
+intelligence:
+  # Data source URL (Index-of-Indexes newsletter)
+  source_url: "https://martincking.github.io/Index-of-Indexes/"
+
+  # Content filtering configuration
+  filters:
+    # Categories to include (match against newsletter category field)
+    include_categories:
+      - "Medical Devices"
+      - "Standards"
+      - "Digital Health"
+      - "AI/ML"
+      - "Software"
+      - "IVD"
+      - "Guidance"
+
+    # Categories to exclude
+    exclude_categories:
+      - "Pharmaceuticals"
+      - "Biologics"
+      - "Drug"
+      - "Vaccines"
+
+    # Keywords that increase relevance (found in title/category/agency)
+    include_keywords:
+      - "MDR"
+      - "IVDR"
+      - "FDA"
+      - "guidance"
+      - "SaMD"
+      - "medical device"
+      - "IVD"
+      - "ISO 13485"
+      - "ISO 14971"
+      - "IEC 62304"
+      - "digital health"
+      - "AI"
+      - "machine learning"
+      - "cybersecurity"
+      - "software"
+      - "CE mark"
+      - "MDCG"
+      - "notified body"
+      - "UDI"
+      - "EUDAMED"
+      - "510(k)"
+      - "PMA"
+      - "De Novo"
+
+    # Keywords that decrease relevance
+    exclude_keywords:
+      - "drug"
+      - "pharmaceutical"
+      - "clinical trial"
+      - "biologics"
+      - "vaccine"
+      - "gene therapy"
+      - "biosimilar"
+      - "medicine"
+      - "medicines"
+      - "medicinal product"
+      - "EMA"
+      - "European Medicines Agency"
+      - "ICH"
+      - "active substance"
+      - "excipient"
+      - "GMP"
+      - "pharmacovigilance"
+      - "eCTD"
+      - "CTD"
+      - "CEP"
+      - "EDQM"
+      - "therapeutic product"
+      - "Medsafe"
+
+    # Combination device keywords (override pharma/ICH exclusion)
+    combination_device_keywords:
+      - "drug-device"
+      - "combination product"
+      - "drug eluting"
+      - "prefilled"
+      - "delivery device"
+
+  # Daily alert configuration
+  alerts:
+    # Keywords that trigger CRITICAL alerts (immediate notification)
+    critical_keywords:
+      - "MDR"
+      - "IVDR"
+      - "FDA final guidance"
+      - "ISO 13485"
+      - "recall"
+      - "safety alert"
+      - "warning letter"
+
+    # Keywords that trigger HIGH priority alerts (need 2+ matches)
+    high_keywords:
+      - "SaMD"
+      - "AI/ML"
+      - "digital health"
+      - "cybersecurity"
+      - "MDCG"
+      - "draft guidance"
+
+  # News freshness filter - exclude old documents being discussed vs new releases
+  news_freshness:
+    # Enable/disable the filter
+    enabled: true
+    # Exclude documents with years older than this (1 = only this year and last year)
+    max_document_age_years: 1
+    # Keywords that indicate genuine new content (allows old doc references through)
+    new_content_keywords:
+      - "new"
+      - "draft"
+      - "proposed"
+      - "released"
+      - "published"
+      - "announces"
+      - "updated"
+      - "revision"
+      - "rev."
+      - "amendment"
+      - "effective"
+      - "final"
+      - "enters into force"
+    # Keywords that indicate discussion/training (not news)
+    discussion_keywords:
+      - "webinar"
+      - "training"
+      - "overview"
+      - "introduction to"
+      - "understanding"
+      - "guide to"
+      - "summary of"
+      - "recap"
+      - "explained"
+
+  # Download settings (for Phase 2)
+  downloads:
+    # Require approval before downloading
+    require_approval: true
+    # Target directory for downloads
+    target_directory: "downloads/intelligence"
+
+  # Summarization settings (for Phase 3)
+  summarization:
+    # LLM provider: anthropic (Claude)
+    provider: "anthropic"
+    # Model to use for summaries (use 'latest' or specific version like '20241022')
+    model: "claude-3-5-haiku-latest"
+    # Summary style: layperson, technical, brief
+    style: "layperson"
+    # Maximum words per summary
+    max_length: 200
+
+  # Email settings (for Phase 4)
+  email:
+    # SMTP server configuration
+    smtp_server: "smtp.gmail.com"
+    smtp_port: 587
+    # Sender address
+    sender: "lisa@donlonlsc.com"
+    # Recipients list
+    recipients:
+      - "lisa@donlonlsc.com"
+      - "lisa@vertigenius.com"
+    # Email subject templates
+    weekly_subject: "Regulatory Intelligence Weekly - {date_range}"
+    monthly_subject: "Regulatory Intelligence Monthly - {month} {year}"
+
+  # Schedule settings (for Phase 5)
+  schedule:
+    # Day to run weekly digest (monday-sunday)
+    weekly_day: "monday"
+    # Time to run weekly digest
+    weekly_time: "08:00"
+    # Day of month for monthly digest (1-28)
+    monthly_day: 1
+    # Enable daily alerts for high-priority items
+    daily_alerts: true
+    # Time to check for daily alerts
+    daily_alert_time: "09:00"
+
+  # Reply processing settings (for Phase 6)
+  # Enables downloading documents by replying to digest emails
+  reply_processing:
+    # IMAP server for receiving replies (Gmail default)
+    imap_server: "imap.gmail.com"
+    imap_port: 993
+    # Poll interval in minutes
+    poll_interval: 30
+    # Trusted regulatory domains for URL resolution
+    trusted_domains:
+      - "fda.gov"
+      - "ec.europa.eu"
+      - "gov.uk"
+      - "who.int"
+      - "iso.org"
+      - "iec.ch"
+      - "tga.gov.au"
+      - "canada.ca"
+      - "health-products.canada.ca"
+      - "ema.europa.eu"
+      - "hpra.ie"
+      - "pmda.go.jp"
+      - "accessdata.fda.gov"
+      - "regulations.gov"
+      - "eur-lex.europa.eu"
