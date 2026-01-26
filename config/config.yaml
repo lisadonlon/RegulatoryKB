@@ -10,6 +10,7 @@ paths:
   database: "db/regulatory.db"
   backups: "db/backups"
   logs: "logs"
+  pending: "pending"    # Inbox for auto-import
 
 # Valid document types
 # Add or modify as needed for your regulatory domain

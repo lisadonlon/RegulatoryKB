@@ -137,6 +137,113 @@ def _interactive_metadata(file_path: Path) -> dict:
 
 
 @cli.command()
+@click.option("--dry-run", is_flag=True, help="Show what would be imported without importing")
+@click.option("--delete", is_flag=True, help="Delete files after successful import (default: move to processed/)")
+def ingest(dry_run: bool, delete: bool) -> None:
+    """
+    Auto-import PDFs from the pending inbox folder.
+
+    Scans the pending/ folder and imports any PDFs found. Folder structure
+    determines metadata:
+
+    \b
+      pending/
+        guidance/             -> type=guidance
+          FDA/                -> type=guidance, jurisdiction=FDA
+          doc.pdf             -> type=guidance, jurisdiction=Other
+        standard/ISO/         -> type=standard, jurisdiction=ISO
+        doc.pdf               -> type=other, jurisdiction=Other
+
+    After import, files are moved to pending/processed/ (or deleted with --delete).
+    """
+    pending_dir = config.pending_dir
+    processed_dir = pending_dir / "processed"
+
+    if not pending_dir.exists():
+        # Create folder structure
+        click.echo(f"Creating pending folder structure at {pending_dir}")
+        pending_dir.mkdir(parents=True, exist_ok=True)
+        for doc_type in config.document_types:
+            (pending_dir / doc_type).mkdir(exist_ok=True)
+        processed_dir.mkdir(exist_ok=True)
+        click.echo("Folder structure created. Drop PDFs into subfolders and run 'regkb ingest' again.")
+        return
+
+    # Find all PDFs
+    pdf_files = list(pending_dir.glob("**/*.pdf"))
+    # Exclude processed folder
+    pdf_files = [f for f in pdf_files if "processed" not in f.parts]
+
+    if not pdf_files:
+        click.echo("No PDFs found in pending folder.")
+        return
+
+    click.echo(f"Found {len(pdf_files)} PDF(s) to import")
+
+    imported = 0
+    skipped = 0
+    errors = []
+
+    for pdf_path in pdf_files:
+        # Determine metadata from folder structure
+        rel_path = pdf_path.relative_to(pending_dir)
+        parts = rel_path.parts[:-1]  # Exclude filename
+
+        doc_type = "other"
+        jurisdiction = "Other"
+
+        if len(parts) >= 1:
+            # First subfolder = document type
+            potential_type = parts[0].lower()
+            if potential_type in [t.lower() for t in config.document_types]:
+                doc_type = config.normalize_document_type(potential_type)
+
+        if len(parts) >= 2:
+            # Second subfolder = jurisdiction
+            potential_jur = parts[1]
+            if potential_jur.lower() in [j.lower() for j in config.jurisdictions]:
+                jurisdiction = config.normalize_jurisdiction(potential_jur)
+
+        metadata = {
+            "document_type": doc_type,
+            "jurisdiction": jurisdiction,
+        }
+
+        if dry_run:
+            click.echo(f"  [DRY RUN] {pdf_path.name} -> type={doc_type}, jurisdiction={jurisdiction}")
+            continue
+
+        try:
+            doc_id = importer.import_file(pdf_path, metadata)
+            if doc_id:
+                click.echo(click.style(f"  + {pdf_path.name} (ID: {doc_id})", fg="green"))
+                imported += 1
+
+                # Move or delete the file
+                if delete:
+                    pdf_path.unlink()
+                else:
+                    processed_dir.mkdir(parents=True, exist_ok=True)
+                    dest = processed_dir / pdf_path.name
+                    # Handle name conflicts
+                    counter = 1
+                    while dest.exists():
+                        dest = processed_dir / f"{pdf_path.stem}_{counter}{pdf_path.suffix}"
+                        counter += 1
+                    pdf_path.rename(dest)
+            else:
+                click.echo(click.style(f"  - {pdf_path.name} (duplicate or invalid)", fg="yellow"))
+                skipped += 1
+        except Exception as e:
+            click.echo(click.style(f"  x {pdf_path.name}: {e}", fg="red"))
+            errors.append({"file": pdf_path.name, "error": str(e)})
+
+    if not dry_run:
+        click.echo()
+        click.echo(f"Imported: {imported}, Skipped: {skipped}, Errors: {len(errors)}")
+
+
+@cli.command()
 @click.argument("query", nargs=-1, required=True)
 @click.option("-t", "--type", "doc_type", help="Filter by document type")
 @click.option("-j", "--jurisdiction", help="Filter by jurisdiction")
@@ -207,7 +314,7 @@ def search(
 
 
 @cli.command()
-@click.argument("source", type=click.Path(path_type=Path))
+@click.argument("source")
 @click.option("-t", "--title", help="Document title")
 @click.option("--type", "doc_type", help="Document type")
 @click.option("-j", "--jurisdiction", help="Jurisdiction")
@@ -215,7 +322,7 @@ def search(
 @click.option("-u", "--url", "source_url", help="Source URL")
 @click.option("-d", "--description", help="Description")
 def add(
-    source: Path,
+    source: str,
     title: Optional[str],
     doc_type: Optional[str],
     jurisdiction: Optional[str],
@@ -228,9 +335,8 @@ def add(
 
     SOURCE can be a local file path or a URL.
     """
-    # Check if source is a URL
-    source_str = str(source)
-    is_url = source_str.startswith("http://") or source_str.startswith("https://")
+    # Check if source is a URL (must check before any Path conversion)
+    is_url = source.startswith("http://") or source.startswith("https://")
 
     # Build metadata with validation
     metadata = {}
@@ -256,14 +362,15 @@ def add(
         metadata["description"] = description
 
     if is_url:
-        click.echo(f"Downloading from {source_str}...")
-        doc_id = importer.import_from_url(source_str, metadata if metadata else None)
+        click.echo(f"Downloading from {source}...")
+        doc_id = importer.import_from_url(source, metadata if metadata else None)
     else:
-        if not source.exists():
+        source_path = Path(source)
+        if not source_path.exists():
             click.echo(click.style(f"File not found: {source}", fg="red"))
             sys.exit(1)
-        click.echo(f"Adding {source.name}...")
-        doc_id = importer.import_file(source, metadata if metadata else None)
+        click.echo(f"Adding {source_path.name}...")
+        doc_id = importer.import_file(source_path, metadata if metadata else None)
 
     if doc_id:
         click.echo(click.style(f"Document added successfully (ID: {doc_id})", fg="green"))

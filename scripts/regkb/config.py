@@ -23,6 +23,7 @@ class Config:
             "database": "db/regulatory.db",
             "backups": "db/backups",
             "logs": "logs",
+            "pending": "pending",  # Inbox for auto-import
         },
         "document_types": [
             "guidance",
@@ -145,6 +146,11 @@ class Config:
     def logs_dir(self) -> Path:
         """Get the logs directory path."""
         return self._base_dir / self._config["paths"]["logs"]
+
+    @property
+    def pending_dir(self) -> Path:
+        """Get the pending inbox directory path for auto-import."""
+        return self._base_dir / self._config["paths"].get("pending", "pending")
 
     @property
     def document_types(self) -> List[str]:
