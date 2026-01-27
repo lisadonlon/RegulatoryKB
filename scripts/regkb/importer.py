@@ -46,6 +46,7 @@ class DocumentImporter:
         """Initialize the document importer."""
         self.archive_dir = config.archive_dir
         self.archive_dir.mkdir(parents=True, exist_ok=True)
+        self.last_version_diff = None  # Set after each import if a prior version is detected
 
     def is_valid_pdf(self, file_path: Path) -> tuple[bool, str]:
         """
@@ -361,6 +362,21 @@ class DocumentImporter:
             success, extracted_path, _ = extractor.extract(archive_path, doc_id)
             if success and extracted_path:
                 db.update_document(doc_id, extracted_path=str(extracted_path))
+
+        # Check for prior version and auto-generate diff (never fail the import)
+        self.last_version_diff = None
+        try:
+            from .version_diff import detect_and_diff
+
+            self.last_version_diff = detect_and_diff(doc_id)
+            if self.last_version_diff:
+                logger.info(
+                    f"Prior version detected: [{self.last_version_diff.old_doc_id}] "
+                    f"'{self.last_version_diff.old_doc_title}' superseded. "
+                    f"Diff similarity: {self.last_version_diff.stats.similarity:.1%}"
+                )
+        except Exception as e:
+            logger.error(f"Version detection failed for doc {doc_id}: {e}")
 
         logger.info(f"Imported: {source_path.name} (ID: {doc_id})")
         return doc_id

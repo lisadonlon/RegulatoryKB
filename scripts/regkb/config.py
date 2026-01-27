@@ -159,6 +159,11 @@ class Config:
         return self._base_dir / self._config["paths"].get("pending", "pending")
 
     @property
+    def diffs_dir(self) -> Path:
+        """Get the version diffs output directory path."""
+        return self._base_dir / self._config["paths"].get("diffs", "reports/diffs")
+
+    @property
     def document_types(self) -> List[str]:
         """Get the list of valid document types."""
         return self._config["document_types"]

@@ -43,6 +43,7 @@ class ProcessedDownload:
     resolved_url: Optional[str] = None
     error: Optional[str] = None
     needs_manual_url: bool = False
+    version_diff: Optional[object] = None  # VersionDiffResult if prior version detected
 
 
 @dataclass
@@ -444,6 +445,9 @@ class ReplyHandler:
                 )
 
                 if doc_id:
+                    # Capture version diff result from importer
+                    version_diff = importer.last_version_diff
+
                     digest_tracker.update_entry_status(
                         entry.entry_id,
                         "downloaded",
@@ -455,6 +459,7 @@ class ReplyHandler:
                         success=True,
                         kb_doc_id=doc_id,
                         resolved_url=url,
+                        version_diff=version_diff,
                     ))
                     logger.info(f"Downloaded entry {entry.entry_id} -> KB ID {doc_id}")
                 else:

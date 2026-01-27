@@ -219,6 +219,17 @@ def ingest(dry_run: bool, delete: bool) -> None:
                 click.echo(click.style(f"  + {pdf_path.name} (ID: {doc_id})", fg="green"))
                 imported += 1
 
+                # Report version diff if detected
+                vdiff = importer.last_version_diff
+                if vdiff:
+                    click.echo(click.style(
+                        f"    -> Supersedes [{vdiff.old_doc_id}] {vdiff.old_doc_title} "
+                        f"(similarity: {vdiff.stats.similarity:.0%})",
+                        fg="cyan",
+                    ))
+                    if vdiff.diff_html_path:
+                        click.echo(f"       Diff: {vdiff.diff_html_path}")
+
                 # Move or delete the file
                 if delete:
                     pdf_path.unlink()
@@ -374,6 +385,18 @@ def add(
 
     if doc_id:
         click.echo(click.style(f"Document added successfully (ID: {doc_id})", fg="green"))
+
+        # Report version diff if detected
+        vdiff = importer.last_version_diff
+        if vdiff:
+            click.echo()
+            click.echo(click.style("Prior version detected!", fg="cyan", bold=True))
+            click.echo(f"  Supersedes: [{vdiff.old_doc_id}] {vdiff.old_doc_title}")
+            click.echo(f"  {vdiff.stats.summary()}")
+            if vdiff.diff_html_path:
+                click.echo(f"  Diff report: {vdiff.diff_html_path}")
+            if vdiff.error:
+                click.echo(click.style(f"  Note: {vdiff.error}", fg="yellow"))
     else:
         click.echo(click.style("Document already exists or import failed", fg="yellow"))
 

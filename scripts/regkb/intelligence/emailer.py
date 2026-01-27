@@ -711,12 +711,31 @@ class Emailer:
             for download in successful:
                 kb_id = f' <span class="kb-id">(KB ID: {download.kb_doc_id})</span>' if download.kb_doc_id else ""
                 seq = download.entry.entry_id.split("-")[-1] if "-" in download.entry.entry_id else download.entry.entry_id
+
+                # Version diff badge
+                version_badge = ""
+                vd = getattr(download, "version_diff", None)
+                if vd and vd.stats:
+                    sim_pct = f"{vd.stats.similarity:.0%}"
+                    version_badge = f'''
+                    <div style="background: #ebf8ff; padding: 8px 12px; margin-top: 6px;
+                                border-radius: 4px; font-size: 12px; color: #2c5282;">
+                        <strong>Version update detected:</strong>
+                        Supersedes [{vd.old_doc_id}] {vd.old_doc_title[:60]}<br>
+                        Similarity: {sim_pct} |
+                        Added: {vd.stats.added} |
+                        Removed: {vd.stats.removed} |
+                        Changed: {vd.stats.changed}
+                    </div>
+                    '''
+
                 successful_section += f'''
                 <div class="success">
                     <div class="entry">
                         <span class="entry-id">[{seq}]</span>
                         {download.entry.title}{kb_id}
                     </div>
+                    {version_badge}
                 </div>
                 '''
 
