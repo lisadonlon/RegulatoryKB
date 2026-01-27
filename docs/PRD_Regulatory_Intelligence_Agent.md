@@ -2,8 +2,8 @@
 
 **Product**: RegulatoryKB - Regulatory Intelligence Module
 **Author**: Lisa Donlon, DLSC / Vertigenius
-**Version**: 1.0 Draft
-**Date**: January 2026
+**Version**: 2.0 (Implementation Complete)
+**Date**: January 2026 (updated January 27, 2026)
 
 ---
 
@@ -116,6 +116,10 @@ intelligence:
 | FR-3.7 | Download approved documents to specified location | Must |
 | FR-3.8 | Import approved documents to KB with metadata | Must |
 | FR-3.9 | Tag imported documents with source (Index-of-Indexes) | Should |
+| FR-3.10 | Auto-detect prior versions on import (identifier matching) | Must |
+| FR-3.11 | Auto-supersede prior version with similarity gate (configurable threshold, default 15%) | Must |
+| FR-3.12 | Content validation — verify extracted text matches claimed title (advisory) | Should |
+| FR-3.13 | PDF validation — magic byte checking, detect HTML error pages, ZIPs, images | Must |
 
 ### 3.4 Summary Generation
 
@@ -200,7 +204,7 @@ Vertigenius Regulatory Consulting
 | FR-6.4 | CLI command: `regkb intel run` - Full workflow | Must |
 | FR-6.5 | CLI command: `regkb intel pending` - List pending approvals | Must |
 | FR-6.6 | CLI command: `regkb intel approve/reject` - Approve/reject downloads | Must |
-| FR-6.7 | CLI command: `regkb intel serve` - Start approval web endpoint | Must |
+| FR-6.7 | CLI command: `regkb intel poll` - Poll IMAP for reply-based downloads | Must |
 | FR-6.8 | Streamlit page for intelligence dashboard | Should |
 | FR-6.9 | Scheduled execution (Windows Task Scheduler / cron) | Should |
 
@@ -253,12 +257,15 @@ Vertigenius Regulatory Consulting
 scripts/regkb/
 ├── intelligence/
 │   ├── __init__.py
-│   ├── fetcher.py       # Newsletter fetching & parsing
-│   ├── filter.py        # Content filtering & relevance scoring
-│   ├── analyzer.py      # KB comparison & gap detection
-│   ├── summarizer.py    # LLM-powered summary generation
-│   ├── emailer.py       # Email composition & delivery
-│   └── scheduler.py     # Scheduled execution support
+│   ├── fetcher.py          # Newsletter fetching & CSV parsing
+│   ├── filter.py           # Content filtering & relevance scoring
+│   ├── analyzer.py         # KB comparison & gap detection
+│   ├── summarizer.py       # Claude LLM summary generation + caching
+│   ├── emailer.py          # Email composition & SMTP delivery
+│   ├── digest_tracker.py   # Entry ID tracking across digests (SQLite)
+│   ├── url_resolver.py     # URL resolution (LinkedIn, social media, paid domains)
+│   ├── reply_handler.py    # IMAP polling & reply-based download processing
+│   └── scheduler.py        # Windows Task Scheduler XML & batch script generation
 ```
 
 ### 5.2 Configuration Extensions
@@ -329,7 +336,7 @@ intelligence:
                                ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │ 1. FETCH                                                         │
-│    Index-of-Indexes → Parse HTML → Extract entries               │
+│    Index-of-Indexes CSV → Parse entries → Freshness filter       │
 │    Output: List[NewsletterEntry]                                 │
 └─────────────────────────────────────────────────────────────────┘
                                │
@@ -349,38 +356,70 @@ intelligence:
                                │
                                ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│ 4. DOWNLOAD                                                      │
-│    Download PDFs → Validate → Import to KB → Tag source          │
-│    Output: List[DownloadResult]                                  │
+│ 4. SUMMARIZE                                                     │
+│    Claude API → Layperson summary → Cache in SQLite              │
+│    Output: List[Summary] (cached for reuse)                      │
 └─────────────────────────────────────────────────────────────────┘
                                │
                                ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│ 5. SUMMARIZE                                                     │
-│    LLM prompt → Generate layperson summary → Format output       │
-│    Output: List[Summary]                                         │
+│ 5. EMAIL (with entry IDs)                                        │
+│    Compose HTML → Group by category → Assign entry IDs           │
+│    → Track in digest DB → Send via SMTP                          │
+│    Output: EmailResult + DigestEntries                            │
+└─────────────────────────────────────────────────────────────────┘
+                               │
+                    ┌──────────┴──────────┐
+                    ▼                     ▼
+┌────────────────────────┐  ┌────────────────────────────────────┐
+│ 6a. REPLY-TO-DOWNLOAD  │  │ 6b. CLI DOWNLOAD                   │
+│   IMAP poll for replies │  │   regkb intel download-entry IDS   │
+│   Parse entry IDs       │  │   Manual download trigger          │
+│   Resolve URLs          │  └────────────────────────────────────┘
+│   (LinkedIn, social)    │               │
+└────────────────────────┘               │
+                    │                     │
+                    └──────────┬──────────┘
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ 7. DOWNLOAD & IMPORT                                             │
+│    Resolve URL → Download PDF → Validate (magic bytes)           │
+│    → Import to KB → Extract text (PyMuPDF / OCR)                 │
+│    → Detect prior version → Similarity gate → Auto-supersede     │
+│    → Content validation (title vs text)                          │
+│    Output: ProcessedDownload (with version_diff, content_warning)│
 └─────────────────────────────────────────────────────────────────┘
                                │
                                ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│ 6. EMAIL                                                         │
-│    Compose HTML → Group by category → Send via SMTP              │
+│ 8. CONFIRMATION EMAIL                                            │
+│    Send results: successes, failures, manual URL needed          │
+│    Include version diff details and content warnings             │
 │    Output: EmailResult                                           │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 ### 5.4 Dependencies
 
-**New Dependencies**:
+**Dependencies** (declared in `pyproject.toml`):
 ```
-# requirements.txt additions
-beautifulsoup4>=4.12.0    # HTML parsing
-lxml>=5.0.0               # Fast HTML parser
-anthropic>=0.18.0         # Claude API for summaries
-openai>=1.0.0             # OpenAI API (alternative)
-jinja2>=3.1.0             # Email templating
-python-dotenv>=1.0.0      # Secure credential loading
-schedule>=1.2.0           # Task scheduling
+# Core
+PyMuPDF (fitz)            # PDF text extraction
+chromadb                  # Vector embeddings database
+sentence-transformers     # Embedding model (all-MiniLM-L6-v2)
+requests                  # HTTP downloads
+tqdm                      # Progress bars
+pyyaml                    # Configuration
+python-dotenv             # Environment variable loading
+
+# Intelligence module
+beautifulsoup4            # HTML parsing (fallback)
+lxml                      # Fast HTML/CSV parser
+anthropic                 # Claude API for LLM summaries
+
+# Optional: OCR
+pytesseract               # Tesseract OCR binding
+Pillow                    # Image processing for OCR
 ```
 
 ---
@@ -500,61 +539,67 @@ Summary saved to: reports/intel_2026-01-26.html
 
 ## 7. Implementation Phases
 
-### Phase 1: Core Fetching & Filtering (MVP)
+### Phase 1: Core Fetching & Filtering (MVP) -- COMPLETE
 **Duration**: 1-2 weeks
 
-- [ ] Newsletter fetcher module
-- [ ] HTML parsing for Index-of-Indexes
-- [ ] Basic category filtering
-- [ ] Keyword-based filtering
-- [ ] CLI command: `regkb intel fetch`
+- [x] Newsletter fetcher module
+- [x] HTML parsing for Index-of-Indexes (CSV direct fetch via PapaParse source)
+- [x] Basic category filtering
+- [x] Keyword-based filtering with relevance scoring
+- [x] CLI command: `regkb intel fetch`
+- [x] News freshness filter (configurable max age, default 14 days)
 
-### Phase 2: KB Integration
+### Phase 2: KB Integration -- COMPLETE
 **Duration**: 1 week
 
-- [ ] URL-based duplicate detection
-- [ ] Title similarity matching
-- [ ] Auto-download for free documents
-- [ ] Auto-import to KB with tagging
-- [ ] CLI command: `regkb intel sync`
+- [x] URL-based duplicate detection
+- [x] Title similarity matching
+- [x] Auto-download for free documents
+- [x] Auto-import to KB with tagging
+- [x] CLI command: `regkb intel sync`
+- [x] Pending approval workflow (`intel pending`, `intel approve`, `intel reject`)
 
-### Phase 3: LLM Summarization
+### Phase 3: LLM Summarization -- COMPLETE
 **Duration**: 1 week
 
-- [ ] Anthropic/OpenAI integration
-- [ ] Summary prompt engineering
-- [ ] Layperson language generation
-- [ ] Configurable summary styles
-- [ ] CLI command: `regkb intel summary`
+- [x] Anthropic integration (Claude API)
+- [x] Summary prompt engineering
+- [x] Layperson language generation (what happened / why it matters / action needed)
+- [x] Configurable summary styles
+- [x] CLI command: `regkb intel summary`
+- [x] Summary caching with SQLite (`intel cache --stats`, `--clear`)
 
-### Phase 4: Email Delivery
+### Phase 4: Email Delivery -- COMPLETE
 **Duration**: 1 week
 
-- [ ] HTML email templates (Jinja2)
-- [ ] SMTP integration
-- [ ] Weekly digest generation
-- [ ] Monthly compilation
-- [ ] CLI command: `regkb intel email`
+- [x] HTML email templates (inline CSS, responsive)
+- [x] SMTP integration (Gmail app passwords)
+- [x] Weekly digest generation with entry IDs
+- [x] Monthly compilation
+- [x] Daily alert emails (critical/high keyword triggers)
+- [x] CLI command: `regkb intel email` (`--type weekly|daily|test`)
 
-### Phase 5: Automation & Polish
+### Phase 5: Automation & Polish -- MOSTLY COMPLETE
 **Duration**: 1 week
 
-- [x] Scheduled execution support
+- [x] Scheduled execution support (Windows Task Scheduler XML + batch script generation)
 - [ ] Streamlit dashboard page
 - [x] Error handling & retry logic
-- [ ] Documentation & examples
+- [x] Documentation (comprehensive README with Mermaid architecture diagram)
 
-### Phase 6: Email Reply-Based Downloads ✅ COMPLETE
+### Phase 6: Email Reply-Based Downloads -- COMPLETE
 **Duration**: 1 week
 
 - [x] Entry ID system (YYYY-MMDD-NN format) in digest emails
 - [x] Digest tracker database for entry lookup
-- [x] URL resolver for LinkedIn/social media links
-- [x] IMAP polling for digest reply processing
-- [x] Confirmation emails with download results
+- [x] URL resolver for LinkedIn/social media links (with paid domain detection)
+- [x] IMAP polling for digest reply processing (trusted sender validation)
+- [x] Confirmation emails with download results (version diff + content warnings included)
 - [x] CLI commands: `poll`, `resolve-url`, `download-entry`, `digest-entries`
+- [x] Auto version detection on reply-triggered imports
+- [x] Content validation on reply-triggered imports
 
-**Workflow**: Reply to digest with "Download: 07, 12" → IMAP poll detects reply → resolve URLs → download → import to KB → send confirmation email
+**Workflow**: Reply to digest with "Download: 07, 12" → IMAP poll detects reply → resolve URLs → download → validate PDF → import to KB → detect prior versions → send confirmation email
 
 ### Phase 7: EVS Standards Integration (Future)
 **Duration**: TBD
@@ -608,24 +653,36 @@ Summary saved to: reports/intel_2026-01-26.html
 | **Monthly Format** | Curated highlights | Top 10-15 items with expanded summaries, not full compilation |
 | **Historical Backfill** | Start fresh | Focus on current/future updates |
 | **Team Recipients** | Static list (configurable in YAML) | Simple initial implementation |
+| **Approval via Web Endpoint** | Replaced by IMAP reply processing | Reply-to-download is simpler — no server process needed, works from any email client |
+| **Supersession Safety** | Similarity gate (15% minimum) + content validation | Prevents wrong PDFs from superseding correct documents in the KB |
+| **CSV vs HTML Parsing** | Direct CSV fetch | Bypasses JavaScript rendering, faster and more reliable |
+| **Summary Caching** | SQLite-backed cache | Avoids redundant LLM API calls for already-summarized entries |
 
-### Approval Workflow Detail
+### Approval & Download Workflow Detail
 
-The approval system supports two interfaces:
+The system supports three download interfaces:
 
-**CLI Approval:**
+**CLI Approval (pending queue):**
 ```bash
 $ regkb intel pending          # List pending downloads
 $ regkb intel approve 1 2 3    # Approve items by ID
 $ regkb intel reject 4         # Reject item
 $ regkb intel approve --all    # Approve all pending
+$ regkb intel download         # Download and import approved items
 ```
 
-**Email Approval:**
-- Each pending item in email includes unique approve/reject links
-- Links hit a lightweight local web endpoint (Flask/FastAPI)
-- Endpoint updates pending status and triggers download
-- Requires `regkb intel serve` running (or scheduled task)
+**Email Reply-to-Download (Phase 6):**
+- Digest emails include entry IDs (e.g., `[07]`, `[12]`) next to each item
+- Reply to the digest with "Download: 07, 12" (or just "07, 12")
+- Run `regkb intel poll` to check IMAP for replies
+- System resolves URLs, downloads PDFs, imports to KB, sends confirmation email
+- Trusted sender validation against configured recipient list
+
+**CLI Direct Download:**
+```bash
+$ regkb intel download-entry 07 12   # Download specific digest entries by ID
+$ regkb intel resolve-url URL        # Test URL resolution for a specific link
+```
 
 ### Daily Alert Keywords
 
@@ -662,26 +719,18 @@ daily_alert_keywords:
 
 ### A. Index-of-Indexes Entry Structure
 
-**Technical Note**: The site loads data dynamically from CSV files via JavaScript (PapaParse). We should either:
-1. Fetch the underlying CSV sources directly (preferred - faster, more reliable)
-2. Use a headless browser to render the JavaScript (fallback)
+**Implementation**: The fetcher directly downloads the CSV source files referenced by the site's `csv_sources.txt`. This bypasses JavaScript rendering entirely and is faster and more reliable than HTML parsing.
 
-**Data Fields** (from HTML table):
+**Data Fields** (from CSV):
 | Column | Description | Notes |
 |--------|-------------|-------|
-| Copilot | AI search link | Bing Copilot query |
-| Date | Entry date | May link to date-specific page |
-| Agency | Regulatory body | FDA, EU, ISO, etc. |
-| Category | Classification | Standards, Guidance, etc. |
-| Title | Description | Links to source document |
+| Date | Entry date | Parsed for freshness filtering |
+| Agency | Regulatory body | FDA, EU, ISO, TGA, Health Canada, etc. |
+| Category | Classification | Standards, Guidance, Regulation, etc. |
+| Title | Description | Used for KB matching and LLM summarization |
+| Link | Source URL | Resolved via url_resolver for social/redirect links |
 
-**Filters Available**:
-- Date (multi-select dropdown)
-- Agency (single-select)
-- Category (single-select)
-- Title (text search)
-
-**CSV Source**: Data loaded from `csv_sources.txt` - should investigate for direct access
+**Freshness Filter**: Entries older than `max_news_age_days` (default 14) are excluded to avoid processing stale content on first run or after gaps.
 
 ### B. Example Filter Rules
 
@@ -716,5 +765,5 @@ Write in plain English, avoid jargon. If technical terms are necessary, briefly 
 
 ---
 
-**Document Status**: Draft for Review
-**Next Steps**: Review with stakeholder, prioritize features, begin Phase 1 implementation
+**Document Status**: Phases 1-6 Implemented, Phase 7 (EVS) Future
+**Implementation Notes**: All core functionality is operational. The email-based approval workflow (FR-6.7 web endpoint) was replaced by IMAP reply processing (Phase 6), which proved more practical. The Streamlit dashboard (Phase 5) remains as a future enhancement. Features beyond original scope — OCR fallback extraction, document diff/comparison, automatic version detection with similarity gate, and content validation — were added during implementation and are documented in FR-3.10 through FR-3.13.
