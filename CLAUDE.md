@@ -1,74 +1,458 @@
-# CLAUDE.md — Project Context for Claude Code
+# CLAUDE.md — RegulatoryKB
 
-## Project Overview
+Medical device regulatory affairs knowledge base. Python 3.9+ · Click CLI · SQLite + ChromaDB · PDF extraction with OCR · regulatory intelligence pipeline.
 
-Regulatory Knowledge Base (RegKB) for medical device regulatory affairs.
-Python 3.9+, Click CLI, local document management with natural language search.
+## File Map
+
+### Root
+
+| File | Lines | Purpose |
+|------|------:|---------|
+| `pyproject.toml` | 97 | Build config, deps, tool settings (Black, Ruff, MyPy, pytest) |
+| `.pre-commit-config.yaml` | 16 | Ruff + format + whitespace + YAML + large-file hooks |
+| `setup.py` | 11 | Shim for `pip install -e .` |
+| `config/config.yaml` | 306 | Runtime config: paths, doc types, jurisdictions, OCR, intelligence |
+
+### `scripts/regkb/` — Core Package
+
+| File | Lines | Purpose |
+|------|------:|---------|
+| `cli.py` | 2656 | Click CLI — 17 commands + `intel` subgroup (17 subcommands) |
+| `config.py` | 297 | Singleton config manager; loads YAML, validates/normalizes types + jurisdictions |
+| `database.py` | 485 | SQLite manager with FTS5 full-text search, CRUD, import batch tracking |
+| `search.py` | 313 | Dual search: SQLite FTS5 + ChromaDB semantic vector search |
+| `importer.py` | 415 | Import workflow: dedup, validation, text extraction, batch audit |
+| `extraction.py` | 303 | PDF→Markdown via PyMuPDF; OCR fallback via pytesseract |
+| `downloader.py` | 252 | HTTP document fetcher with URL validation and filename sanitization |
+| `diff.py` | 210 | Document comparison: unified diff, HTML side-by-side, similarity stats |
+| `version_tracker.py` | 448 | Version checking against `KNOWN_VERSIONS` dict; current/outdated/unknown |
+| `version_diff.py` | 296 | Auto-detect prior versions of imported docs and generate diffs |
+| `gap_analysis.py` | 324 | Compare KB against reference checklist; identifier matching + scoring |
+| `reference_docs.py` | 953 | Curated checklist of essential regulatory documents by jurisdiction |
+| `acquisition_list.py` | 880 | Acquisition URLs for missing docs by jurisdiction + priority |
+| `app.py` | 581 | Streamlit web UI for document management and search |
+
+### `scripts/regkb/intelligence/` — Monitoring Pipeline
+
+| File | Lines | Purpose |
+|------|------:|---------|
+| `fetcher.py` | 330 | Fetch regulatory updates from Index-of-Indexes CSV sources |
+| `filter.py` | 567 | Relevance scoring by keywords, categories, alert level |
+| `analyzer.py` | 544 | Compare filtered entries against KB; manage download queue |
+| `summarizer.py` | 403 | LLM-powered summaries via Claude API; SQLite cache |
+| `emailer.py` | 848 | SMTP digest delivery (weekly/daily/reply-confirmation templates) |
+| `digest_tracker.py` | 452 | Deduplication across weekly/daily/monthly digests |
+| `url_resolver.py` | 400 | Resolve shortened links; verify document accessibility |
+| `reply_handler.py` | 557 | Poll IMAP inbox for email replies; queue docs for download |
+| `scheduler.py` | 376 | Windows Task Scheduler XML + batch script generation |
+
+### `tests/`
+
+| File | Lines | Purpose |
+|------|------:|---------|
+| `conftest.py` | 61 | Fixtures: `fresh_config`, `tmp_db`, `populated_db` |
+| `test_config.py` | 94 | Config singleton, validation, normalization |
+| `test_database.py` | 115 | CRUD, FTS5 search, statistics, import batches |
+| `test_gap_analysis.py` | 192 | Title normalization, identifier extraction, match scoring |
+| `test_version_tracker.py` | 179 | Version extraction, doc identifier normalization, status checks |
+| `test_diff.py` | 66 | Diff stats, unified diff, HTML diff |
+| `test_extraction.py` | 73 | Markdown conversion, heading/list detection |
+| `test_downloader.py` | 76 | URL validation, filename sanitization |
+
+## Architecture
+
+```mermaid
+graph TB
+    subgraph CLI["regkb CLI · Click"]
+        commands["17 commands + intel subgroup"]
+    end
+
+    subgraph Core["Core Modules"]
+        config["config"] --> db["database"]
+        config --> search["search"]
+        config --> extraction["extraction"]
+        config --> importer["importer"]
+        db --> search
+        db --> importer
+        extraction --> importer
+    end
+
+    subgraph Analysis["Analysis"]
+        diff["diff"]
+        vt["version_tracker"]
+        vd["version_diff"]
+        gap["gap_analysis"] --> ref["reference_docs"]
+        vd --> diff & vt & db
+    end
+
+    subgraph Intel["Intelligence Pipeline"]
+        fetcher --> filter --> analyzer --> summarizer --> emailer
+        emailer -.->|digest| reply_handler
+        analyzer --> url_resolver
+    end
+
+    subgraph Stores["Data Stores"]
+        sqlite[("SQLite · db/regulatory.db")]
+        chroma[("ChromaDB · db/chroma/")]
+        extracted["extracted/ · Markdown"]
+        archive["archive/ · PDFs"]
+    end
+
+    CLI --> Core & Analysis & Intel
+    db --- sqlite
+    search --- chroma
+    extraction --- extracted
+    importer --- archive
+```
+
+## Intelligence Pipeline
+
+```mermaid
+sequenceDiagram
+    participant F as Fetcher
+    participant Fi as Filter
+    participant A as Analyzer
+    participant S as Summarizer
+    participant E as Emailer
+    participant R as ReplyHandler
+    participant KB as Knowledge Base
+
+    F->>Fi: NewsletterEntry[]
+    Fi->>A: FilteredEntry[] (scored, categorized)
+    A->>KB: Check existing docs
+    A->>S: New entries for summarization
+    S->>E: Summary[] (cached in SQLite)
+    E->>R: Weekly/daily digest email
+    R->>KB: Download approved docs
+```
+
+## Module Dependencies
+
+```mermaid
+graph TD
+    config["config"]
+    database --> config
+    extraction --> config
+    diff --> config
+    search --> config & database
+    importer --> config & database & extraction
+    version_diff --> config & database & diff & version_tracker
+    gap_analysis --> reference_docs
+    intel_filter["intel/filter"] --> intel_fetcher["intel/fetcher"]
+    intel_analyzer["intel/analyzer"] --> config & intel_filter
+    cli --> config & database & importer & search & extraction
+    cli --> downloader & gap_analysis & version_tracker & version_diff
+    cli --> intel_fetcher & intel_filter & intel_analyzer
+    cli --> intel_summarizer & intel_emailer & intel_digest_tracker
+    cli --> intel_reply_handler & intel_url_resolver & intel_scheduler
+```
 
 ## Key Commands
 
 ```bash
-pip install -e .              # Core install
-pip install -e ".[dev]"       # Dev tools (pytest, black, ruff, mypy)
+pip install -e ".[dev]"       # Dev install (pytest, black, ruff, mypy)
 pip install -e ".[ocr]"       # OCR support (pytesseract, Pillow)
 regkb --help                  # CLI entry point
-pytest                        # Run tests
+pytest                        # Run tests (verbose, short tracebacks)
 pre-commit run --all-files    # Lint/format check
 ```
-
-## Architecture
-
-- **Package**: `scripts/regkb/`
-- **Entry point**: `regkb.cli:main` (Click CLI)
-- **Config**: `config/config.yaml`
-- **Build**: setuptools, configured in `pyproject.toml`
-
-## Code Conventions
-
-- **Formatter**: Black, 100-char line length
-- **Linter**: Ruff — rule sets: E, F, W, I, N, UP, B, C4 (E501 ignored)
-- **Type checker**: MyPy (strict return/config warnings, missing imports ignored)
-- **Docstrings**: Google style
-- **Type annotations**: Required on all functions
-- **Target**: Python 3.9+
 
 ## Data Stores
 
 | Store | Location | Purpose |
 |-------|----------|---------|
-| SQLite | `db/regulatory.db` | Structured metadata |
-| ChromaDB | `db/chroma/` | Vector embeddings for search |
-| Extracted text | `extracted/` | PDF text extraction output |
-| PDF archive | `archive/` | Source document storage |
+| SQLite | `db/regulatory.db` | Structured metadata + FTS5 full-text search |
+| ChromaDB | `db/chroma/` | Vector embeddings for semantic search |
+| Extracted text | `extracted/` | PDF→Markdown extraction output |
+| PDF archive | `archive/` | Source documents, organized by jurisdiction subdirs |
 
-## Intelligence Module
+## Database Schema
 
-`scripts/regkb/intelligence/` — automated regulatory monitoring pipeline:
+| Table | Key Columns | Notes |
+|-------|-------------|-------|
+| `documents` | id · hash(UNIQUE) · title · document_type · jurisdiction · version · is_latest · file_path · extracted_path · description · download_date · import_date · superseded_by(FK) | Main document store |
+| `documents_fts` | title · description · extracted_text | FTS5 virtual, `content='documents'`, porter tokenizer |
+| `import_batches` | id · source_path · started_at · completed_at · total_files · imported · duplicates · errors · status | Audit trail |
+| `import_batch_items` | id · batch_id(FK) · file_path · document_id(FK) · status · error_message | Per-file tracking |
 
-- `fetcher` — source data retrieval
-- `filter` — relevance filtering
-- `analyzer` — content analysis
-- `summarizer` — digest generation
-- `emailer` — notification delivery
-- `digest_tracker` — deduplication tracking
-- `url_resolver` — link resolution
-- `reply_handler` — email reply processing
-- `scheduler` — job orchestration
+Indexes: `hash` · `document_type` · `jurisdiction` · `is_latest`. Triggers: `documents_ai`/`ad`/`au` keep FTS5 in sync.
+
+## Data Models
+
+**Core:**
+
+- `DiffStats(added · removed · changed · unchanged: int, similarity: float)` — `.summary() -> str` · `.total -> int`
+- `DiffResult(doc1_id · doc2_id: int, doc1_title · doc2_title: str, stats: DiffStats, unified_diff · html_diff: str)`
+- `VersionInfo(doc_id: int, title · jurisdiction: str, current_version · latest_version · current_date · latest_date: str?, is_current: bool, status · notes · update_url: str)`
+- `VersionDiffResult(new_doc_id · old_doc_id: int, old_doc_title · new_doc_title: str, stats: DiffStats, diff_html_path · error: str?, auto_superseded: bool)`
+- `MatchResult(ref_id · ref_title · ref_description · jurisdiction · category: str, mandatory · matched: bool, kb_doc_id: int?, kb_doc_title: str?, match_confidence: float)`
+- `ImportResult(total_files · imported · duplicates · errors: int, error_details: list[dict])`
+
+**Intelligence:**
+
+- `NewsletterEntry(date · agency · category · title: str, link: str?, date_parsed: datetime?)`
+- `FetchResult(total_entries · sources_fetched: int, entries: list, errors: list[str], fetch_time: datetime?)`
+- `FilteredEntry(entry: NewsletterEntry, relevance_score: float, matched_keywords · matched_categories: list[str], is_combination_device: bool, alert_level: str?)`
+- `FilterResult(entries: list, total_entries · alerts · high_priority: int)`
+- `AnalysisResult(entry: FilteredEntry, in_kb · is_downloadable · requires_manual: bool, kb_doc_id: int?, kb_match_type · manual_reason · download_url: str?, kb_match_score: float)`
+- `AnalysisSummary(total_analyzed · already_in_kb · new_downloadable · requires_manual: int, results: list)`
+- `PendingDownload(id: int, title · url · agency · category · date · status · created_at · updated_at: str, relevance_score: float, keywords: list[str], doc_id: int?)`
+- `Summary(entry_title · entry_agency · entry_date · what_happened · why_it_matters · action_needed · full_summary · generated_at · model_used: str)`
+- `EmailConfig(smtp_server: str, smtp_port: int, sender: str, recipients: list[str], username · password: str?, use_tls: bool)`
+- `EmailResult(success: bool, recipients_sent: int, error: str?)`
+- `DigestEntry(entry_id · entry_hash · title · agency · category · date · download_status: str, link · resolved_url · error_message: str?, kb_doc_id: int?)`
+- `Digest(digest_date: str, sent_at: datetime, entry_count: int, message_id: str?)`
+- `ResolveResult(success · is_paid · needs_manual: bool, original_url: str, resolved_url · document_type · domain · error: str?, all_links_found: list?)`
+- `DownloadRequest(entry_ids: list[str], requester_email · subject · raw_body: str, received_at: datetime)`
+- `ProcessedDownload(entry: DigestEntry, success · needs_manual_url: bool, kb_doc_id: int?, resolved_url · error · content_warning: str?, version_diff: object?)`
+- `ProcessingResult(requests_processed: int, successful · failed · needs_manual: list, errors: list[str])`
+
+## Module API Reference
+
+### config.py — `Config` (singleton)
+
+| Method | Signature |
+|--------|-----------|
+| `validate_document_type` | `(doc_type: str) -> tuple[bool, str]` |
+| `validate_jurisdiction` | `(jurisdiction: str) -> tuple[bool, str]` |
+| `normalize_document_type` | `(doc_type: str) -> str` |
+| `normalize_jurisdiction` | `(jurisdiction: str) -> str` |
+| `get` | `(key: str, default=None) -> Any` — dot-notation supported |
+| `reload` | `() -> None` |
+| Properties | `base_dir · archive_dir · extracted_dir · database_path · backups_dir · logs_dir · pending_dir · diffs_dir · document_types · jurisdictions` |
+
+### database.py — `Database(db_path: Path?)`
+
+| Method | Signature |
+|--------|-----------|
+| `connection` | `() -> Generator[Connection]` — context manager |
+| `document_exists` | `(file_hash: str) -> bool` |
+| `add_document` | `(file_hash, title, document_type, jurisdiction, file_path, version?, source_url?, description?, download_date?) -> int` |
+| `get_document` | `(doc_id?: int, file_hash?: str) -> dict?` |
+| `update_document` | `(doc_id: int, **kwargs) -> bool` — allowed: title · document_type · jurisdiction · version · is_latest · source_url · description · extracted_path · superseded_by |
+| `list_documents` | `(document_type?, jurisdiction?, latest_only=True, limit=100, offset=0) -> list[dict]` |
+| `search_fts` | `(query: str, limit=10, latest_only=True) -> list[dict]` |
+| `get_statistics` | `() -> dict` — keys: total_documents · by_type · by_jurisdiction · latest_versions · total_imports |
+| `create_import_batch` | `(source_path: str) -> int` |
+| `update_import_batch` | `(batch_id, total_files?, imported?, duplicates?, errors?, status?) -> None` |
+| `backup` | `() -> Path` |
+
+### search.py — `SearchEngine()`
+
+| Method | Signature |
+|--------|-----------|
+| `index_document` | `(doc_id: int, text: str, metadata: dict) -> bool` |
+| `search` | `(query, limit=10, document_type?, jurisdiction?, latest_only=True, include_excerpt=True) -> list[dict]` |
+| `reindex_all` | `(progress_callback?) -> int` |
+
+### extraction.py — `TextExtractor(output_dir: Path?)`
+
+| Method | Signature |
+|--------|-----------|
+| `extract` | `(pdf_path: Path, doc_id: int, force_ocr=False) -> tuple[bool, Path?, str?]` |
+| `re_extract` | `(pdf_path: Path, doc_id: int, force_ocr=False) -> tuple[bool, Path?, str?]` |
+| `get_extracted_text` | `(doc_id: int) -> str?` |
+| `_convert_to_markdown` | `(text: str, title: str) -> str` |
+| `_is_potential_heading` | `(line: str) -> bool` |
+| `_is_list_item` | `(line: str) -> bool` |
+| `_format_list_item` | `(line: str) -> str` |
+
+### importer.py — `DocumentImporter()`
+
+| Method | Signature |
+|--------|-----------|
+| `import_directory` | `(source_dir, recursive=True, metadata_callback?, progress=True) -> ImportResult` |
+| `import_file` | `(file_path, metadata?) -> int?` |
+| `import_from_url` | `(url, metadata?) -> int?` |
+| `scan_directory` | `(directory, recursive=True) -> list[Path]` |
+| `is_valid_pdf` | `(file_path) -> tuple[bool, str]` |
+| `calculate_hash` | `(file_path) -> str` |
+
+### downloader.py — `DocumentDownloader()`
+
+| Method | Signature |
+|--------|-----------|
+| `download` | `(url, title, jurisdiction, timeout=60) -> tuple[bool, Path?, str?]` |
+| `download_batch` | `(documents, progress_callback?, delay=1.0) -> dict` |
+| `_validate_url` | `(url: str) -> tuple[bool, str?]` |
+| `_sanitize_filename` | `(filename: str) -> str` |
+
+### diff.py — Pure functions
+
+| Function | Signature |
+|----------|-----------|
+| `compare_documents` | `(doc1_id, doc2_id, doc1_title="", doc2_title="", context_lines=3, include_html=False) -> DiffResult?` |
+| `compute_diff_stats` | `(lines1, lines2: list[str]) -> DiffStats` |
+| `generate_unified_diff` | `(lines1, lines2, label1, label2, context_lines=3) -> str` |
+| `generate_html_diff` | `(lines1, lines2, label1, label2, context_lines=3) -> str` |
+
+### version_tracker.py — Pure functions
+
+| Function | Signature |
+|----------|-----------|
+| `extract_version_from_title` | `(title: str) -> tuple[str?, str?]` — (version, year) |
+| `normalize_doc_identifier` | `(title: str) -> str?` |
+| `check_document_version` | `(doc: dict) -> VersionInfo` |
+| `check_all_versions` | `(db_path: str) -> list[VersionInfo]` |
+| `get_version_summary` | `(results: list[VersionInfo]) -> dict` |
+
+### version_diff.py — Pure functions
+
+| Function | Signature |
+|----------|-----------|
+| `detect_and_diff` | `(doc_id: int, auto_supersede=True) -> VersionDiffResult?` |
+| `validate_content_matches_title` | `(doc_id: int) -> str?` |
+
+### gap_analysis.py — Pure functions
+
+| Function | Signature |
+|----------|-----------|
+| `normalize_title` | `(title: str) -> str` |
+| `extract_doc_identifiers` | `(title: str) -> list[str]` |
+| `calculate_match_score` | `(ref_doc: dict, kb_title: str, kb_jurisdiction: str) -> float` |
+| `find_best_match` | `(ref_doc: dict, kb_docs: list[dict]) -> tuple[dict?, float]` |
+| `run_gap_analysis` | `(db_path: str) -> dict[str, list[MatchResult]]` |
+| `get_gap_summary` | `(results) -> dict` |
+| `get_missing_docs` | `(results, mandatory_only=False) -> list[MatchResult]` |
+
+### intelligence/ — Pipeline modules
+
+| Module | Class | Key Methods |
+|--------|-------|-------------|
+| `fetcher.py` | `NewsletterFetcher(cache_dir?)` | `fetch_all(days_back=7, progress_callback?) -> FetchResult` |
+| `filter.py` | `ContentFilter(config?)` | `filter_entries(entries) -> FilterResult` |
+| `analyzer.py` | `KBAnalyzer(db_path?)` | `analyze(filtered) -> AnalysisSummary` · `add_pending_download(...) -> int` · `get_pending_downloads(status?) -> list` |
+| `summarizer.py` | `Summarizer()` | `summarize(entry, style?) -> Summary?` |
+| `emailer.py` | `EmailDelivery(config?)` | `send_weekly_digest(entries, summaries) -> EmailResult` · `send_daily_alert(...)` · `send_reply_confirmation(...)` |
+| `digest_tracker.py` | `DigestTracker(db_path?)` | `add_digest(...) -> int` · `add_entry(...) -> int` · `get_entries_by_id(ids) -> list` · `mark_downloaded(entry_id, kb_doc_id, url) -> bool` |
+| `url_resolver.py` | `URLResolver(trusted_domains?)` | `resolve(url) -> ResolveResult` |
+| `reply_handler.py` | `ReplyHandler()` | `fetch_replies(since?) -> list[DownloadRequest]` · `process_request(req) -> ProcessingResult` |
+| `scheduler.py` | `SchedulerState()` | `should_run_weekly/daily/monthly() -> bool` · `mark_*_run()` · `generate_batch_script(type) -> str` · `generate_windows_task_xml(type) -> str` |
+
+## CLI Commands
+
+| Command | Description |
+|---------|-------------|
+| `regkb import` | Import PDFs from directory |
+| `regkb ingest` | Auto-import from pending inbox |
+| `regkb add` | Add single document (file or URL) |
+| `regkb search` | Natural language search |
+| `regkb list` | List documents with filters |
+| `regkb show` | Show document details |
+| `regkb update` | Update document metadata |
+| `regkb stats` | Knowledge base statistics |
+| `regkb extract` | Re-extract text from PDF |
+| `regkb ocr-reextract` | Batch OCR re-extraction |
+| `regkb diff` | Compare two documents |
+| `regkb versions` | Check document versions |
+| `regkb gaps` | Gap analysis vs reference checklist |
+| `regkb download` | Download from official sources |
+| `regkb acquire` | Show acquisition list |
+| `regkb reindex` | Reindex all documents |
+| `regkb backup` | Database backup |
+
+| Intel Subcommand | Description |
+|------------------|-------------|
+| `regkb intel run` | Full intelligence pipeline |
+| `regkb intel fetch` | Fetch regulatory updates |
+| `regkb intel sync` | Sync newsletter + queue downloads |
+| `regkb intel pending` | Show pending downloads |
+| `regkb intel approve` | Approve downloads |
+| `regkb intel reject` | Reject downloads |
+| `regkb intel download` | Download approved entries |
+| `regkb intel summary` | Generate AI summaries |
+| `regkb intel email` | Send digests |
+| `regkb intel poll` | Poll IMAP for replies |
+| `regkb intel resolve-url` | Resolve shortened URLs |
+| `regkb intel download-entry` | Download entry by ID |
+| `regkb intel digest-entries` | Show recent digest entries |
+| `regkb intel status` | Intelligence cache status |
+| `regkb intel cache` | Manage cache |
+| `regkb intel setup` | Setup scheduler/email/IMAP |
+| `regkb intel schedule-status` | Show scheduled jobs |
+
+## Config Reference
+
+| Key | Default | Purpose |
+|-----|---------|---------|
+| `paths.archive` | `archive` | PDF storage directory |
+| `paths.extracted` | `extracted` | Markdown extraction output |
+| `paths.database` | `db/regulatory.db` | SQLite database path |
+| `paths.backups` | `db/backups` | Database backup directory |
+| `paths.logs` | `logs` | Log file directory |
+| `paths.pending` | `pending` | Auto-import inbox |
+| `document_types` | 11 types | guidance · standard · regulation · legislation · policy · procedure · report · white_paper · technical_note · advisory · other |
+| `jurisdictions` | 14 values | EU · FDA · ISO · ICH · UK · Ireland · WHO · Health Canada · TGA · PMDA · EMA · MHRA · HPRA · Other |
+| `import.batch_size` | 50 | Files per import batch |
+| `import.skip_duplicates` | true | Skip files with matching hash |
+| `search.default_limit` | 10 | Default search result count |
+| `search.embedding_model` | `all-MiniLM-L6-v2` | Sentence transformer model |
+| `ocr.enabled` | true | Enable OCR fallback |
+| `ocr.language` | `eng` | Tesseract language |
+| `ocr.min_text_length` | 50 | Chars below which OCR triggers |
+| `ocr.dpi` | 300 | OCR rendering DPI |
+| `versioning.min_supersession_similarity` | 0.15 | Threshold for auto-supersession |
+| `intelligence.source_url` | Index-of-Indexes | Newsletter CSV source |
+| `intelligence.summarization.provider` | anthropic | LLM provider |
+| `intelligence.email.*` | — | SMTP server, port, sender, recipients, templates |
+| `intelligence.schedule.*` | — | Weekly day/time, monthly day, daily alert time |
+| `intelligence.reply_processing.*` | — | IMAP server, port, poll interval |
 
 ## Environment
 
-Secrets live in `.env` (never committed):
+| Variable | Purpose |
+|----------|---------|
+| `REGKB_BASE_DIR` | Override base directory (default: project root) |
+| `ANTHROPIC_API_KEY` | Claude API key for intelligence summarization |
+| `SMTP_USERNAME` / `SMTP_PASSWORD` | Email delivery credentials |
+| `IMAP_USERNAME` / `IMAP_PASSWORD` | Email reply polling credentials |
 
-- `ANTHROPIC_API_KEY`
-- SMTP/IMAP credentials
+Secrets live in `.env` (never committed).
+
+## Code Conventions
+
+- **Formatter**: Black, 100-char line length
+- **Linter**: Ruff — E, F, W, I, N, UP, B, C4 (E501 ignored)
+- **Type checker**: MyPy (strict return/config warnings, missing imports ignored)
+- **Docstrings**: Google style · Type annotations required on all functions · Target: Python 3.9+
 
 ## Testing
 
-- Framework: pytest (configured in `pyproject.toml`)
-- Tests: `tests/`
-- Run: `pytest` (verbose, short tracebacks by default)
+| Fixture | Purpose |
+|---------|---------|
+| `fresh_config` | Reset Config singleton, point at temp dir via `REGKB_BASE_DIR` |
+| `tmp_db` | File-based SQLite in temp dir (FTS5 triggers need file, not `:memory:`) |
+| `populated_db` | `tmp_db` + 4 sample documents (EU, ISO, FDA, MDCG) |
+
+| Source | Test |
+|--------|------|
+| `config.py` | `test_config.py` |
+| `database.py` | `test_database.py` |
+| `gap_analysis.py` | `test_gap_analysis.py` |
+| `version_tracker.py` | `test_version_tracker.py` |
+| `diff.py` | `test_diff.py` |
+| `extraction.py` | `test_extraction.py` |
+| `downloader.py` | `test_downloader.py` |
+
+No network, no APIs, no ChromaDB, no PDFs in tests.
+
+## Gotchas
+
+| Issue | Workaround |
+|-------|------------|
+| `Config.__new__` singleton with shallow `DEFAULTS.copy()` | `_merge_config` mutates class-level nested dicts; reset `Config._instance = None` between tests |
+| Module-level globals (`config`, `db`, `extractor`, `downloader`) | Execute on import; bypass via constructor params: `Database(db_path=...)`, `TextExtractor(output_dir=...)` |
+| `DocumentDownloader` has no constructor bypass | Must `patch("regkb.downloader.config")` before constructing |
+| FTS5 triggers need file-based SQLite | Use `tmp_path / "test.db"`, not `:memory:` |
+| `normalize_doc_identifier` parses `:YYYY` as part number | `"ISO 13485:2016"` → `"ISO 13485-2016"` (won't match `KNOWN_VERSIONS["ISO 13485"]`) |
 
 ## Pre-commit
 
-Ruff + Black hooks configured in `.pre-commit-config.yaml`.
-Run `pre-commit run --all-files` to check before committing.
+Hooks: ruff (lint + format) · trailing-whitespace · end-of-file-fixer · check-yaml · check-added-large-files · check-merge-conflict
+
+## Verification
+
+```bash
+pytest tests/ -v
+pre-commit run --all-files
+```
