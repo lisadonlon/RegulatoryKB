@@ -59,6 +59,12 @@ class Config:
             "show_latest_only": True,
             "embedding_model": "all-MiniLM-L6-v2",
         },
+        "ocr": {
+            "enabled": True,
+            "language": "eng",
+            "min_text_length": 50,
+            "dpi": 300,
+        },
         "logging": {
             "level": "INFO",
             "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",

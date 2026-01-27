@@ -544,7 +544,8 @@ def reindex() -> None:
 
 @cli.command()
 @click.argument("doc_id", type=int)
-def extract(doc_id: int) -> None:
+@click.option("--ocr", is_flag=True, help="Force OCR on all pages (requires Tesseract)")
+def extract(doc_id: int, ocr: bool) -> None:
     """Re-extract text from a document's PDF."""
     doc = db.get_document(doc_id=doc_id)
 
@@ -557,14 +558,163 @@ def extract(doc_id: int) -> None:
         click.echo(click.style(f"PDF file not found: {pdf_path}", fg="red"))
         sys.exit(1)
 
-    click.echo(f"Re-extracting text from {pdf_path.name}...")
-    success, output_path, error = extractor.re_extract(pdf_path, doc_id)
+    if ocr:
+        from .extraction import _check_ocr_available
+
+        if not _check_ocr_available():
+            click.echo(click.style(
+                "OCR not available. Install Tesseract and run: pip install regkb[ocr]",
+                fg="red",
+            ))
+            sys.exit(1)
+        click.echo(f"Re-extracting text (with forced OCR) from {pdf_path.name}...")
+    else:
+        click.echo(f"Re-extracting text from {pdf_path.name}...")
+
+    success, output_path, error = extractor.re_extract(pdf_path, doc_id, force_ocr=ocr)
 
     if success:
         db.update_document(doc_id, extracted_path=str(output_path))
         click.echo(click.style(f"Extracted to: {output_path}", fg="green"))
     else:
         click.echo(click.style(f"Extraction failed: {error}", fg="red"))
+
+
+@cli.command("ocr-reextract")
+@click.option("--doc-id", type=int, default=None, help="Re-extract a single document by ID")
+@click.option("--all", "all_docs", is_flag=True, help="Re-extract all documents with OCR")
+def ocr_reextract(doc_id: int, all_docs: bool) -> None:
+    """Batch re-extract documents using OCR.
+
+    Forces OCR on every page. Requires Tesseract to be installed.
+    Use --doc-id for a single document or --all for every document in the KB.
+    """
+    from .extraction import _check_ocr_available
+
+    if not _check_ocr_available():
+        click.echo(click.style(
+            "OCR not available. Install Tesseract and run: pip install regkb[ocr]",
+            fg="red",
+        ))
+        sys.exit(1)
+
+    if not doc_id and not all_docs:
+        click.echo(click.style("Provide --doc-id <id> or --all", fg="red"))
+        sys.exit(1)
+
+    if doc_id:
+        doc = db.get_document(doc_id=doc_id)
+        if not doc:
+            click.echo(click.style(f"Document not found: {doc_id}", fg="red"))
+            sys.exit(1)
+        docs = [doc]
+    else:
+        docs = db.list_documents(latest_only=False, limit=10000)
+        if not docs:
+            click.echo("No documents in the knowledge base.")
+            return
+
+    success_count = 0
+    fail_count = 0
+    for doc in tqdm(docs, desc="OCR re-extracting", disable=len(docs) == 1):
+        pdf_path = Path(doc["file_path"])
+        if not pdf_path.exists():
+            click.echo(click.style(f"  PDF not found for doc {doc['id']}: {pdf_path}", fg="yellow"))
+            fail_count += 1
+            continue
+
+        ok, out_path, err = extractor.re_extract(pdf_path, doc["id"], force_ocr=True)
+        if ok:
+            db.update_document(doc["id"], extracted_path=str(out_path))
+            success_count += 1
+        else:
+            click.echo(click.style(f"  Failed doc {doc['id']}: {err}", fg="red"))
+            fail_count += 1
+
+    click.echo()
+    click.echo(click.style(
+        f"OCR re-extraction complete: {success_count} succeeded, {fail_count} failed",
+        fg="green" if fail_count == 0 else "yellow",
+    ))
+
+
+@cli.command("diff")
+@click.argument("id1", type=int)
+@click.argument("id2", type=int)
+@click.option("-o", "--output", type=click.Path(path_type=Path), default=None,
+              help="Save HTML side-by-side diff to file")
+@click.option("--stats-only", is_flag=True, help="Show only summary statistics")
+@click.option("--context", type=int, default=3, help="Number of context lines (default: 3)")
+def diff_cmd(id1: int, id2: int, output: Optional[Path], stats_only: bool, context: int) -> None:
+    """Compare two documents side-by-side.
+
+    ID1 and ID2 are the document IDs to compare.
+    """
+    from .diff import compare_documents
+
+    # Look up document titles
+    doc1 = db.get_document(doc_id=id1)
+    doc2 = db.get_document(doc_id=id2)
+
+    if not doc1:
+        click.echo(click.style(f"Document not found: {id1}", fg="red"))
+        sys.exit(1)
+    if not doc2:
+        click.echo(click.style(f"Document not found: {id2}", fg="red"))
+        sys.exit(1)
+
+    title1 = doc1.get("title", f"Document {id1}")
+    title2 = doc2.get("title", f"Document {id2}")
+
+    result = compare_documents(
+        doc1_id=id1,
+        doc2_id=id2,
+        doc1_title=title1,
+        doc2_title=title2,
+        context_lines=context,
+        include_html=output is not None,
+    )
+
+    if result is None:
+        click.echo(click.style(
+            "Cannot compare: one or both documents have no extracted text. "
+            "Run 'regkb extract <id>' first.",
+            fg="red",
+        ))
+        sys.exit(1)
+
+    # Always show stats
+    click.echo(click.style("Document Comparison", fg="cyan", bold=True))
+    click.echo(f"  A: [{id1}] {title1}")
+    click.echo(f"  B: [{id2}] {title2}")
+    click.echo()
+    click.echo(result.stats.summary())
+
+    if stats_only:
+        return
+
+    # Show colored unified diff
+    if result.unified_diff:
+        click.echo()
+        for line in result.unified_diff.splitlines():
+            if line.startswith("+++") or line.startswith("---"):
+                click.echo(click.style(line, bold=True))
+            elif line.startswith("+"):
+                click.echo(click.style(line, fg="green"))
+            elif line.startswith("-"):
+                click.echo(click.style(line, fg="red"))
+            elif line.startswith("@@"):
+                click.echo(click.style(line, fg="cyan"))
+            else:
+                click.echo(line)
+    else:
+        click.echo("\nDocuments are identical.")
+
+    # Save HTML report
+    if output and result.html_diff:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(result.html_diff, encoding="utf-8")
+        click.echo(click.style(f"\nHTML diff saved to: {output}", fg="green"))
 
 
 @cli.command()

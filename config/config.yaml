@@ -64,6 +64,17 @@ search:
   # Options: all-MiniLM-L6-v2 (fast), all-mpnet-base-v2 (better quality)
   embedding_model: "all-MiniLM-L6-v2"
 
+# OCR settings (for scanned PDF extraction)
+ocr:
+  # Enable automatic OCR fallback for scanned pages
+  enabled: true
+  # Tesseract language (e.g., "eng", "fra", "deu")
+  language: "eng"
+  # Minimum characters from normal extraction before OCR kicks in
+  min_text_length: 50
+  # DPI for rendering pages to images for OCR
+  dpi: 300
+
 # Logging configuration
 logging:
   # Log level: DEBUG, INFO, WARNING, ERROR
