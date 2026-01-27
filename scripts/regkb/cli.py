@@ -219,14 +219,28 @@ def ingest(dry_run: bool, delete: bool) -> None:
                 click.echo(click.style(f"  + {pdf_path.name} (ID: {doc_id})", fg="green"))
                 imported += 1
 
+                # Content validation warning
+                if importer.last_content_warning:
+                    click.echo(click.style(
+                        f"    !! {importer.last_content_warning}",
+                        fg="yellow",
+                    ))
+
                 # Report version diff if detected
                 vdiff = importer.last_version_diff
                 if vdiff:
-                    click.echo(click.style(
-                        f"    -> Supersedes [{vdiff.old_doc_id}] {vdiff.old_doc_title} "
-                        f"(similarity: {vdiff.stats.similarity:.0%})",
-                        fg="cyan",
-                    ))
+                    if vdiff.auto_superseded:
+                        click.echo(click.style(
+                            f"    -> Supersedes [{vdiff.old_doc_id}] {vdiff.old_doc_title} "
+                            f"(similarity: {vdiff.stats.similarity:.0%})",
+                            fg="cyan",
+                        ))
+                    else:
+                        click.echo(click.style(
+                            f"    !! Possible match [{vdiff.old_doc_id}] {vdiff.old_doc_title} "
+                            f"(similarity: {vdiff.stats.similarity:.0%}) — NOT auto-superseded",
+                            fg="yellow",
+                        ))
                     if vdiff.diff_html_path:
                         click.echo(f"       Diff: {vdiff.diff_html_path}")
 
@@ -386,12 +400,27 @@ def add(
     if doc_id:
         click.echo(click.style(f"Document added successfully (ID: {doc_id})", fg="green"))
 
+        # Content validation warning
+        if importer.last_content_warning:
+            click.echo()
+            click.echo(click.style(
+                f"  Warning: {importer.last_content_warning}",
+                fg="yellow",
+            ))
+
         # Report version diff if detected
         vdiff = importer.last_version_diff
         if vdiff:
             click.echo()
-            click.echo(click.style("Prior version detected!", fg="cyan", bold=True))
-            click.echo(f"  Supersedes: [{vdiff.old_doc_id}] {vdiff.old_doc_title}")
+            if vdiff.auto_superseded:
+                click.echo(click.style("Prior version detected!", fg="cyan", bold=True))
+                click.echo(f"  Supersedes: [{vdiff.old_doc_id}] {vdiff.old_doc_title}")
+            else:
+                click.echo(click.style(
+                    "Possible version match — NOT auto-superseded (similarity too low)",
+                    fg="yellow", bold=True,
+                ))
+                click.echo(f"  Candidate: [{vdiff.old_doc_id}] {vdiff.old_doc_title}")
             click.echo(f"  {vdiff.stats.summary()}")
             if vdiff.diff_html_path:
                 click.echo(f"  Diff report: {vdiff.diff_html_path}")

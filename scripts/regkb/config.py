@@ -65,6 +65,9 @@ class Config:
             "min_text_length": 50,
             "dpi": 300,
         },
+        "versioning": {
+            "min_supersession_similarity": 0.15,
+        },
         "logging": {
             "level": "INFO",
             "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",

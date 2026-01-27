@@ -44,6 +44,7 @@ class ProcessedDownload:
     error: Optional[str] = None
     needs_manual_url: bool = False
     version_diff: Optional[object] = None  # VersionDiffResult if prior version detected
+    content_warning: Optional[str] = None  # Warning if content doesn't match title
 
 
 @dataclass
@@ -445,8 +446,9 @@ class ReplyHandler:
                 )
 
                 if doc_id:
-                    # Capture version diff result from importer
+                    # Capture version diff and content warning from importer
                     version_diff = importer.last_version_diff
+                    content_warning = importer.last_content_warning
 
                     digest_tracker.update_entry_status(
                         entry.entry_id,
@@ -460,6 +462,7 @@ class ReplyHandler:
                         kb_doc_id=doc_id,
                         resolved_url=url,
                         version_diff=version_diff,
+                        content_warning=content_warning,
                     ))
                     logger.info(f"Downloaded entry {entry.entry_id} -> KB ID {doc_id}")
                 else:

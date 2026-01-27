@@ -47,6 +47,7 @@ class DocumentImporter:
         self.archive_dir = config.archive_dir
         self.archive_dir.mkdir(parents=True, exist_ok=True)
         self.last_version_diff = None  # Set after each import if a prior version is detected
+        self.last_content_warning = None  # Set after each import if content doesn't match title
 
     def is_valid_pdf(self, file_path: Path) -> tuple[bool, str]:
         """
@@ -363,6 +364,17 @@ class DocumentImporter:
             if success and extracted_path:
                 db.update_document(doc_id, extracted_path=str(extracted_path))
 
+        # Validate content matches title (advisory, never fails the import)
+        self.last_content_warning = None
+        try:
+            from .version_diff import validate_content_matches_title
+
+            self.last_content_warning = validate_content_matches_title(doc_id)
+            if self.last_content_warning:
+                logger.warning(f"Content warning for doc {doc_id}: {self.last_content_warning}")
+        except Exception as e:
+            logger.debug(f"Content validation skipped for doc {doc_id}: {e}")
+
         # Check for prior version and auto-generate diff (never fail the import)
         self.last_version_diff = None
         try:
@@ -370,11 +382,17 @@ class DocumentImporter:
 
             self.last_version_diff = detect_and_diff(doc_id)
             if self.last_version_diff:
-                logger.info(
-                    f"Prior version detected: [{self.last_version_diff.old_doc_id}] "
-                    f"'{self.last_version_diff.old_doc_title}' superseded. "
-                    f"Diff similarity: {self.last_version_diff.stats.similarity:.1%}"
-                )
+                if self.last_version_diff.auto_superseded:
+                    logger.info(
+                        f"Prior version detected: [{self.last_version_diff.old_doc_id}] "
+                        f"'{self.last_version_diff.old_doc_title}' superseded. "
+                        f"Diff similarity: {self.last_version_diff.stats.similarity:.1%}"
+                    )
+                else:
+                    logger.warning(
+                        f"Possible prior version [{self.last_version_diff.old_doc_id}] "
+                        f"but similarity too low to auto-supersede"
+                    )
         except Exception as e:
             logger.error(f"Version detection failed for doc {doc_id}: {e}")
 

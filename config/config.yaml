@@ -75,6 +75,13 @@ ocr:
   # DPI for rendering pages to images for OCR
   dpi: 300
 
+# Versioning and supersession settings
+versioning:
+  # Minimum diff similarity required to auto-supersede a prior version.
+  # Below this threshold, the match is flagged for manual review.
+  # Range: 0.0 to 1.0 (e.g. 0.15 = 15%)
+  min_supersession_similarity: 0.15
+
 # Logging configuration
 logging:
   # Log level: DEBUG, INFO, WARNING, ERROR
