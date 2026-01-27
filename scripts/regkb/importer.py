@@ -9,7 +9,7 @@ import logging
 import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Optional
 
 import requests
 from tqdm import tqdm
@@ -29,7 +29,7 @@ class ImportResult:
     imported: int = 0
     duplicates: int = 0
     errors: int = 0
-    error_details: List[Dict[str, str]] = field(default_factory=list)
+    error_details: list[dict[str, str]] = field(default_factory=list)
 
     def __str__(self) -> str:
         return (
@@ -112,7 +112,7 @@ class DocumentImporter:
                 sha256.update(chunk)
         return sha256.hexdigest()
 
-    def scan_directory(self, directory: Path, recursive: bool = True) -> List[Path]:
+    def scan_directory(self, directory: Path, recursive: bool = True) -> list[Path]:
         """
         Scan a directory for PDF files.
 
@@ -130,7 +130,7 @@ class DocumentImporter:
         self,
         source_dir: Path,
         recursive: bool = True,
-        metadata_callback: Optional[Callable[[Path], Dict[str, str]]] = None,
+        metadata_callback: Optional[Callable[[Path], dict[str, str]]] = None,
         progress: bool = True,
     ) -> ImportResult:
         """
@@ -164,10 +164,7 @@ class DocumentImporter:
                 is_valid, validation_error = self.is_valid_pdf(pdf_path)
                 if not is_valid:
                     result.errors += 1
-                    result.error_details.append({
-                        "file": str(pdf_path),
-                        "error": validation_error
-                    })
+                    result.error_details.append({"file": str(pdf_path), "error": validation_error})
                     logger.warning(f"Skipping invalid file {pdf_path.name}: {validation_error}")
                     continue
 
@@ -195,10 +192,7 @@ class DocumentImporter:
 
             except Exception as e:
                 result.errors += 1
-                result.error_details.append({
-                    "file": str(pdf_path),
-                    "error": str(e)
-                })
+                result.error_details.append({"file": str(pdf_path), "error": str(e)})
                 logger.error(f"Error importing {pdf_path}: {e}")
 
         # Update batch record
@@ -208,7 +202,7 @@ class DocumentImporter:
             imported=result.imported,
             duplicates=result.duplicates,
             errors=result.errors,
-            status="completed"
+            status="completed",
         )
 
         return result
@@ -216,7 +210,7 @@ class DocumentImporter:
     def import_file(
         self,
         file_path: Path,
-        metadata: Optional[Dict[str, str]] = None,
+        metadata: Optional[dict[str, str]] = None,
     ) -> Optional[int]:
         """
         Import a single file.
@@ -253,7 +247,7 @@ class DocumentImporter:
     def import_from_url(
         self,
         url: str,
-        metadata: Optional[Dict[str, str]] = None,
+        metadata: Optional[dict[str, str]] = None,
     ) -> Optional[int]:
         """
         Download and import a document from a URL.
@@ -276,6 +270,7 @@ class DocumentImporter:
             # Determine filename
             if "content-disposition" in response.headers:
                 import re
+
                 cd = response.headers["content-disposition"]
                 fname_match = re.search(r'filename="?([^";\n]+)"?', cd)
                 filename = fname_match.group(1) if fname_match else "downloaded.pdf"
@@ -321,7 +316,7 @@ class DocumentImporter:
         self,
         source_path: Path,
         file_hash: str,
-        metadata: Dict[str, str],
+        metadata: dict[str, str],
     ) -> Optional[int]:
         """
         Import a single document (internal method).
@@ -399,7 +394,7 @@ class DocumentImporter:
         logger.info(f"Imported: {source_path.name} (ID: {doc_id})")
         return doc_id
 
-    def _default_metadata(self, file_path: Path) -> Dict[str, str]:
+    def _default_metadata(self, file_path: Path) -> dict[str, str]:
         """
         Generate default metadata from filename.
 

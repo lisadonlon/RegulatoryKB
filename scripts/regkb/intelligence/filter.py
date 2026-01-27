@@ -8,7 +8,7 @@ import logging
 import re
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Optional
 
 from .fetcher import NewsletterEntry
 
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 # Default filter configuration
-DEFAULT_FILTER_CONFIG: Dict[str, Any] = {
+DEFAULT_FILTER_CONFIG: dict[str, Any] = {
     "include_categories": [
         "Medical Devices",
         "Standards",
@@ -136,8 +136,8 @@ class FilteredEntry:
 
     entry: NewsletterEntry
     relevance_score: float = 0.0
-    matched_keywords: List[str] = field(default_factory=list)
-    matched_categories: List[str] = field(default_factory=list)
+    matched_keywords: list[str] = field(default_factory=list)
+    matched_categories: list[str] = field(default_factory=list)
     is_combination_device: bool = False
     alert_level: Optional[str] = None  # "critical", "high", or None
 
@@ -152,9 +152,9 @@ class FilterResult:
     """Results from a filtering operation."""
 
     total_input: int = 0
-    included: List[FilteredEntry] = field(default_factory=list)
-    excluded: List[NewsletterEntry] = field(default_factory=list)
-    high_priority: List[FilteredEntry] = field(default_factory=list)
+    included: list[FilteredEntry] = field(default_factory=list)
+    excluded: list[NewsletterEntry] = field(default_factory=list)
+    high_priority: list[FilteredEntry] = field(default_factory=list)
 
     @property
     def total_included(self) -> int:
@@ -171,9 +171,9 @@ class FilterResult:
             f"{len(self.high_priority)} high priority"
         )
 
-    def by_category(self) -> Dict[str, List[FilteredEntry]]:
+    def by_category(self) -> dict[str, list[FilteredEntry]]:
         """Group included entries by category."""
-        grouped: Dict[str, List[FilteredEntry]] = {}
+        grouped: dict[str, list[FilteredEntry]] = {}
         for entry in self.included:
             category = entry.entry.category or "Other"
             if category not in grouped:
@@ -181,9 +181,9 @@ class FilterResult:
             grouped[category].append(entry)
         return grouped
 
-    def by_agency(self) -> Dict[str, List[FilteredEntry]]:
+    def by_agency(self) -> dict[str, list[FilteredEntry]]:
         """Group included entries by agency."""
-        grouped: Dict[str, List[FilteredEntry]] = {}
+        grouped: dict[str, list[FilteredEntry]] = {}
         for entry in self.included:
             agency = entry.entry.agency or "Other"
             if agency not in grouped:
@@ -195,7 +195,7 @@ class FilterResult:
 class ContentFilter:
     """Filters and scores newsletter entries based on configured interests."""
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, config: Optional[dict[str, Any]] = None) -> None:
         """
         Initialize the content filter.
 
@@ -205,10 +205,10 @@ class ContentFilter:
         self.config = config or DEFAULT_FILTER_CONFIG
 
         # Compile keyword patterns for efficient matching
-        self._include_patterns: List[re.Pattern] = []
-        self._exclude_patterns: List[re.Pattern] = []
-        self._combination_patterns: List[re.Pattern] = []
-        self._alert_patterns: Dict[str, List[re.Pattern]] = {"critical": [], "high": []}
+        self._include_patterns: list[re.Pattern] = []
+        self._exclude_patterns: list[re.Pattern] = []
+        self._combination_patterns: list[re.Pattern] = []
+        self._alert_patterns: dict[str, list[re.Pattern]] = {"critical": [], "high": []}
 
         self._compile_patterns()
 
@@ -245,7 +245,7 @@ class ContentFilter:
         ]
         return " ".join(parts)
 
-    def _check_category_match(self, entry: NewsletterEntry) -> tuple[bool, bool, List[str]]:
+    def _check_category_match(self, entry: NewsletterEntry) -> tuple[bool, bool, list[str]]:
         """
         Check if entry category matches include/exclude lists.
 
@@ -280,7 +280,7 @@ class ContentFilter:
                 return True
         return False
 
-    def _has_exclude_keywords(self, text: str) -> Tuple[bool, int]:
+    def _has_exclude_keywords(self, text: str) -> tuple[bool, int]:
         """
         Check if text contains exclude keywords.
 
@@ -293,7 +293,7 @@ class ContentFilter:
                 count += 1
         return count > 0, count
 
-    def _check_news_freshness(self, entry: NewsletterEntry) -> Tuple[bool, Optional[str]]:
+    def _check_news_freshness(self, entry: NewsletterEntry) -> tuple[bool, Optional[str]]:
         """
         Check if entry is genuinely new news vs discussion of old documents.
 
@@ -312,14 +312,16 @@ class ContentFilter:
         cutoff_year = current_year - max_age
 
         # Find year references in the title (e.g., "2020", "2019-11", ":2016")
-        year_pattern = r'(?:^|[:\s\-/])(\d{4})(?:[:\s\-/]|$)'
+        year_pattern = r"(?:^|[:\s\-/])(\d{4})(?:[:\s\-/]|$)"
         year_matches = re.findall(year_pattern, title)
 
         # Also check for patterns like "MDCG 2020-16" or "ISO 13485:2016"
-        doc_year_pattern = r'(?:MDCG|ISO|IEC|FDA|EU)\s*(\d{4})'
+        doc_year_pattern = r"(?:MDCG|ISO|IEC|FDA|EU)\s*(\d{4})"
         doc_year_matches = re.findall(doc_year_pattern, title, re.IGNORECASE)
 
-        all_years = [int(y) for y in year_matches + doc_year_matches if 2000 <= int(y) <= current_year]
+        all_years = [
+            int(y) for y in year_matches + doc_year_matches if 2000 <= int(y) <= current_year
+        ]
 
         if not all_years:
             # No year found, assume it's current news
@@ -347,7 +349,7 @@ class ContentFilter:
         # Old document without clear indication of being new
         return False, f"Document from {oldest_year} (older than {cutoff_year})"
 
-    def _calculate_relevance(self, entry: NewsletterEntry) -> tuple[float, List[str]]:
+    def _calculate_relevance(self, entry: NewsletterEntry) -> tuple[float, list[str]]:
         """
         Calculate relevance score based on keyword matches.
 
@@ -401,7 +403,7 @@ class ContentFilter:
 
         return None
 
-    def filter(self, entries: List[NewsletterEntry]) -> FilterResult:
+    def filter(self, entries: list[NewsletterEntry]) -> FilterResult:
         """
         Filter a list of newsletter entries.
 
@@ -448,7 +450,15 @@ class ContentFilter:
             elif cat_included and not cat_excluded and has_excludes:
                 # Category matches but has exclude keywords - only include if good device keywords
                 # Require at least one strong device indicator
-                device_indicators = ["medical device", "IVD", "SaMD", "510(k)", "MDR", "IVDR", "CE mark"]
+                device_indicators = [
+                    "medical device",
+                    "IVD",
+                    "SaMD",
+                    "510(k)",
+                    "MDR",
+                    "IVDR",
+                    "CE mark",
+                ]
                 has_device_keyword = any(kw.lower() in text.lower() for kw in device_indicators)
                 should_include = has_device_keyword
             elif cat_excluded and is_combination:
@@ -491,7 +501,7 @@ class ContentFilter:
         logger.info(str(result))
         return result
 
-    def update_config(self, new_config: Dict[str, Any]) -> None:
+    def update_config(self, new_config: dict[str, Any]) -> None:
         """
         Update filter configuration.
 
@@ -503,7 +513,7 @@ class ContentFilter:
 
 
 # Load filter config from config.yaml if available
-def _load_filter_config() -> Dict[str, Any]:
+def _load_filter_config() -> dict[str, Any]:
     """Load filter configuration from config.yaml."""
     try:
         from ..config import config as app_config
@@ -512,23 +522,37 @@ def _load_filter_config() -> Dict[str, Any]:
 
         # Load category filters
         if app_config.get("intelligence.filters.include_categories"):
-            filter_config["include_categories"] = app_config.get("intelligence.filters.include_categories")
+            filter_config["include_categories"] = app_config.get(
+                "intelligence.filters.include_categories"
+            )
         if app_config.get("intelligence.filters.exclude_categories"):
-            filter_config["exclude_categories"] = app_config.get("intelligence.filters.exclude_categories")
+            filter_config["exclude_categories"] = app_config.get(
+                "intelligence.filters.exclude_categories"
+            )
 
         # Load keyword filters
         if app_config.get("intelligence.filters.include_keywords"):
-            filter_config["include_keywords"] = app_config.get("intelligence.filters.include_keywords")
+            filter_config["include_keywords"] = app_config.get(
+                "intelligence.filters.include_keywords"
+            )
         if app_config.get("intelligence.filters.exclude_keywords"):
-            filter_config["exclude_keywords"] = app_config.get("intelligence.filters.exclude_keywords")
+            filter_config["exclude_keywords"] = app_config.get(
+                "intelligence.filters.exclude_keywords"
+            )
         if app_config.get("intelligence.filters.combination_device_keywords"):
-            filter_config["combination_device_keywords"] = app_config.get("intelligence.filters.combination_device_keywords")
+            filter_config["combination_device_keywords"] = app_config.get(
+                "intelligence.filters.combination_device_keywords"
+            )
 
         # Load alert keywords
         if app_config.get("intelligence.alerts.critical_keywords"):
-            filter_config["daily_alert_keywords"]["critical"] = app_config.get("intelligence.alerts.critical_keywords")
+            filter_config["daily_alert_keywords"]["critical"] = app_config.get(
+                "intelligence.alerts.critical_keywords"
+            )
         if app_config.get("intelligence.alerts.high_keywords"):
-            filter_config["daily_alert_keywords"]["high"] = app_config.get("intelligence.alerts.high_keywords")
+            filter_config["daily_alert_keywords"]["high"] = app_config.get(
+                "intelligence.alerts.high_keywords"
+            )
 
         # Load news freshness config
         if app_config.get("intelligence.news_freshness"):

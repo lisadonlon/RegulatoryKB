@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from difflib import SequenceMatcher
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from ..config import config
 from .filter import FilteredEntry
@@ -47,7 +47,7 @@ class AnalysisSummary:
     already_in_kb: int = 0
     new_downloadable: int = 0
     requires_manual: int = 0
-    results: List[AnalysisResult] = field(default_factory=list)
+    results: list[AnalysisResult] = field(default_factory=list)
 
     def __str__(self) -> str:
         return (
@@ -69,7 +69,7 @@ class PendingDownload:
     category: str
     date: str
     relevance_score: float
-    keywords: List[str]
+    keywords: list[str]
     status: str  # "pending", "approved", "rejected", "downloaded", "failed"
     created_at: str
     updated_at: str
@@ -148,7 +148,7 @@ class KBAnalyzer:
         conn.commit()
         conn.close()
 
-    def _get_kb_documents(self) -> List[Dict[str, Any]]:
+    def _get_kb_documents(self) -> list[dict[str, Any]]:
         """Get all documents from the KB for comparison."""
         if not self.db_path.exists():
             return []
@@ -190,7 +190,9 @@ class KBAnalyzer:
         t2 = self._normalize_title(title2)
         return SequenceMatcher(None, t1, t2).ratio()
 
-    def _check_url_match(self, entry_url: str, kb_docs: List[Dict]) -> Tuple[bool, Optional[int], float]:
+    def _check_url_match(
+        self, entry_url: str, kb_docs: list[dict]
+    ) -> tuple[bool, Optional[int], float]:
         """Check if entry URL matches any KB document."""
         if not entry_url:
             return False, None, 0.0
@@ -206,8 +208,8 @@ class KBAnalyzer:
         return False, None, 0.0
 
     def _check_title_match(
-        self, entry_title: str, kb_docs: List[Dict], threshold: float = 0.85
-    ) -> Tuple[bool, Optional[int], float]:
+        self, entry_title: str, kb_docs: list[dict], threshold: float = 0.85
+    ) -> tuple[bool, Optional[int], float]:
         """Check if entry title matches any KB document title."""
         if not entry_title:
             return False, None, 0.0
@@ -248,7 +250,7 @@ class KBAnalyzer:
                 return True
         return False
 
-    def _is_paid_domain(self, url: str) -> Tuple[bool, Optional[str]]:
+    def _is_paid_domain(self, url: str) -> tuple[bool, Optional[str]]:
         """Check if URL is from a domain that requires payment."""
         if not url:
             return False, None
@@ -259,7 +261,7 @@ class KBAnalyzer:
                 return True, f"Requires purchase from {domain}"
         return False, None
 
-    def _analyze_downloadability(self, url: str) -> Tuple[bool, bool, Optional[str]]:
+    def _analyze_downloadability(self, url: str) -> tuple[bool, bool, Optional[str]]:
         """
         Analyze if a URL is downloadable.
 
@@ -292,7 +294,7 @@ class KBAnalyzer:
         # Otherwise, might be downloadable - mark as potential
         return True, True, "May require navigation to find document"
 
-    def analyze(self, filtered_entries: List[FilteredEntry]) -> AnalysisSummary:
+    def analyze(self, filtered_entries: list[FilteredEntry]) -> AnalysisSummary:
         """
         Analyze filtered entries against the knowledge base.
 
@@ -305,7 +307,9 @@ class KBAnalyzer:
         summary = AnalysisSummary(total_analyzed=len(filtered_entries))
         kb_docs = self._get_kb_documents()
 
-        logger.info(f"Analyzing {len(filtered_entries)} entries against {len(kb_docs)} KB documents")
+        logger.info(
+            f"Analyzing {len(filtered_entries)} entries against {len(kb_docs)} KB documents"
+        )
 
         for fe in filtered_entries:
             entry = fe.entry
@@ -334,7 +338,9 @@ class KBAnalyzer:
                 continue
 
             # Not in KB - check downloadability
-            is_downloadable, requires_manual, manual_reason = self._analyze_downloadability(entry.link)
+            is_downloadable, requires_manual, manual_reason = self._analyze_downloadability(
+                entry.link
+            )
 
             result.is_downloadable = is_downloadable
             result.download_url = entry.link
@@ -351,7 +357,7 @@ class KBAnalyzer:
         logger.info(str(summary))
         return summary
 
-    def queue_for_approval(self, results: List[AnalysisResult]) -> int:
+    def queue_for_approval(self, results: list[AnalysisResult]) -> int:
         """
         Add downloadable entries to the pending approval queue.
 
@@ -400,7 +406,7 @@ class KBAnalyzer:
         logger.info(f"Queued {queued} documents for approval")
         return queued
 
-    def get_pending(self, status: str = "pending") -> List[PendingDownload]:
+    def get_pending(self, status: str = "pending") -> list[PendingDownload]:
         """
         Get pending downloads by status.
 
@@ -440,7 +446,7 @@ class KBAnalyzer:
 
         return results
 
-    def approve(self, ids: List[int]) -> int:
+    def approve(self, ids: list[int]) -> int:
         """
         Approve pending downloads.
 
@@ -465,7 +471,7 @@ class KBAnalyzer:
         logger.info(f"Approved {count} downloads")
         return count
 
-    def reject(self, ids: List[int]) -> int:
+    def reject(self, ids: list[int]) -> int:
         """
         Reject pending downloads.
 
@@ -525,12 +531,10 @@ class KBAnalyzer:
         conn.commit()
         conn.close()
 
-    def get_stats(self) -> Dict[str, int]:
+    def get_stats(self) -> dict[str, int]:
         """Get statistics about pending downloads."""
         conn = sqlite3.connect(self.pending_db_path)
-        cursor = conn.execute(
-            "SELECT status, COUNT(*) FROM pending_downloads GROUP BY status"
-        )
+        cursor = conn.execute("SELECT status, COUNT(*) FROM pending_downloads GROUP BY status")
         stats = {row[0]: row[1] for row in cursor.fetchall()}
         conn.close()
         return stats

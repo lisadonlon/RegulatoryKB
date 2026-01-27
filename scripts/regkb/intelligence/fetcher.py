@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from io import StringIO
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 import requests
 
@@ -45,7 +45,14 @@ class NewsletterEntry:
         if self.date and not self.date_parsed:
             try:
                 # Try common date formats
-                for fmt in ("%Y-%m-%d", "%m/%d/%Y", "%d/%m/%Y", "%B %d, %Y", "%d %B %Y", "%d. %B %Y"):
+                for fmt in (
+                    "%Y-%m-%d",
+                    "%m/%d/%Y",
+                    "%d/%m/%Y",
+                    "%B %d, %Y",
+                    "%d %B %Y",
+                    "%d. %B %Y",
+                ):
                     try:
                         self.date_parsed = datetime.strptime(self.date.strip(), fmt)
                         break
@@ -60,9 +67,9 @@ class FetchResult:
     """Results from a newsletter fetch operation."""
 
     total_entries: int = 0
-    entries: List[NewsletterEntry] = field(default_factory=list)
+    entries: list[NewsletterEntry] = field(default_factory=list)
     sources_fetched: int = 0
-    errors: List[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
     fetch_time: Optional[datetime] = None
 
     def __str__(self) -> str:
@@ -87,10 +94,10 @@ class NewsletterFetcher:
         self.session.headers.update({"User-Agent": USER_AGENT})
 
         # URL and agency mappings
-        self._url_map: Dict[str, str] = {}
-        self._agency_map: Dict[str, str] = {}
+        self._url_map: dict[str, str] = {}
+        self._agency_map: dict[str, str] = {}
 
-    def _fetch_url(self, url: str) -> Tuple[bool, str]:
+    def _fetch_url(self, url: str) -> tuple[bool, str]:
         """
         Fetch content from a URL.
 
@@ -111,7 +118,7 @@ class NewsletterFetcher:
         except requests.exceptions.RequestException as e:
             return False, f"Request failed for {url}: {str(e)}"
 
-    def _load_csv_sources(self) -> List[str]:
+    def _load_csv_sources(self) -> list[str]:
         """
         Load the list of CSV source URLs.
 
@@ -170,7 +177,7 @@ class NewsletterFetcher:
 
         logger.debug(f"Loaded {len(self._agency_map)} agency mappings")
 
-    def _parse_csv_data(self, csv_content: str, source_url: str) -> List[NewsletterEntry]:
+    def _parse_csv_data(self, csv_content: str, source_url: str) -> list[NewsletterEntry]:
         """
         Parse CSV content into newsletter entries.
 
@@ -278,7 +285,9 @@ class NewsletterFetcher:
             else:
                 # Exclude entries we couldn't parse dates for
                 unparsed_count += 1
-                logger.debug(f"Excluding entry with unparseable date: {entry.date} - {entry.title[:50]}")
+                logger.debug(
+                    f"Excluding entry with unparseable date: {entry.date} - {entry.title[:50]}"
+                )
 
         if unparsed_count > 0:
             logger.warning(f"Excluded {unparsed_count} entries with unparseable dates")

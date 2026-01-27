@@ -5,14 +5,12 @@ Generates layperson-friendly summaries of regulatory updates using Claude.
 """
 
 import hashlib
-import json
 import logging
 import os
 import sqlite3
 from dataclasses import dataclass
 from datetime import datetime
-from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from ..config import config
 from .filter import FilteredEntry
@@ -139,6 +137,7 @@ class Summarizer:
         if self._client is None:
             try:
                 import anthropic
+
                 # Check for API key
                 api_key = os.environ.get("ANTHROPIC_API_KEY")
                 if not api_key:
@@ -147,11 +146,10 @@ class Summarizer:
                         "Set it with: set ANTHROPIC_API_KEY=your-api-key"
                     )
                 self._client = anthropic.Anthropic(api_key=api_key)
-            except ImportError:
+            except ImportError as err:
                 raise ImportError(
-                    "anthropic package not installed. "
-                    "Install with: pip install anthropic"
-                )
+                    "anthropic package not installed. Install with: pip install anthropic"
+                ) from err
         return self._client
 
     def _get_entry_hash(self, entry: FilteredEntry) -> str:
@@ -233,7 +231,9 @@ class Summarizer:
             date=entry.entry.date or "Recent",
         )
 
-    def _parse_summary_response(self, response_text: str, entry: FilteredEntry, model: str) -> Summary:
+    def _parse_summary_response(
+        self, response_text: str, entry: FilteredEntry, model: str
+    ) -> Summary:
         """Parse the LLM response into a Summary object."""
         # Default values
         what_happened = ""
@@ -347,11 +347,11 @@ class Summarizer:
 
     def summarize_batch(
         self,
-        entries: List[FilteredEntry],
+        entries: list[FilteredEntry],
         style: Optional[str] = None,
         use_cache: bool = True,
         progress_callback: Optional[callable] = None,
-    ) -> List[Summary]:
+    ) -> list[Summary]:
         """
         Generate summaries for multiple entries.
 
@@ -376,7 +376,7 @@ class Summarizer:
 
         return summaries
 
-    def get_cache_stats(self) -> Dict[str, Any]:
+    def get_cache_stats(self) -> dict[str, Any]:
         """Get statistics about cached summaries."""
         conn = sqlite3.connect(self.cache_db_path)
         cursor = conn.execute("SELECT COUNT(*), style FROM summaries GROUP BY style")

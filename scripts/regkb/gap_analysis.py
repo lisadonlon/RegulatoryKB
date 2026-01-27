@@ -3,17 +3,18 @@ Gap analysis tool to identify missing regulatory documents.
 Compares knowledge base contents against reference checklist.
 """
 
-import sqlite3
 import re
-from pathlib import Path
-from typing import Dict, List, Tuple, Optional
+import sqlite3
 from dataclasses import dataclass
-from .reference_docs import REFERENCE_DOCUMENTS, get_all_reference_docs, get_mandatory_docs
+from typing import Optional
+
+from .reference_docs import REFERENCE_DOCUMENTS
 
 
 @dataclass
 class MatchResult:
     """Represents a match between a reference doc and a KB document."""
+
     ref_id: str
     ref_title: str
     ref_description: str
@@ -30,43 +31,43 @@ def normalize_title(title: str) -> str:
     """Normalize a title for matching."""
     title = title.lower()
     # Remove common prefixes/suffixes
-    title = re.sub(r'\s*\(.*?\)\s*', ' ', title)  # Remove parentheticals
-    title = re.sub(r'\s*-\s*copy.*$', '', title, flags=re.IGNORECASE)
-    title = re.sub(r'\s+v\d+.*$', '', title, flags=re.IGNORECASE)  # Version numbers
-    title = re.sub(r'\s+rev\s*\d+.*$', '', title, flags=re.IGNORECASE)  # Revisions
-    title = re.sub(r'\s+ed\.\d+.*$', '', title, flags=re.IGNORECASE)  # Editions
-    title = re.sub(r'\s+en\s*$', '', title)  # Language suffix
-    title = re.sub(r'[^a-z0-9\s]', ' ', title)  # Remove special chars
-    title = re.sub(r'\s+', ' ', title).strip()  # Normalize whitespace
+    title = re.sub(r"\s*\(.*?\)\s*", " ", title)  # Remove parentheticals
+    title = re.sub(r"\s*-\s*copy.*$", "", title, flags=re.IGNORECASE)
+    title = re.sub(r"\s+v\d+.*$", "", title, flags=re.IGNORECASE)  # Version numbers
+    title = re.sub(r"\s+rev\s*\d+.*$", "", title, flags=re.IGNORECASE)  # Revisions
+    title = re.sub(r"\s+ed\.\d+.*$", "", title, flags=re.IGNORECASE)  # Editions
+    title = re.sub(r"\s+en\s*$", "", title)  # Language suffix
+    title = re.sub(r"[^a-z0-9\s]", " ", title)  # Remove special chars
+    title = re.sub(r"\s+", " ", title).strip()  # Normalize whitespace
     return title
 
 
-def extract_doc_identifiers(title: str) -> List[str]:
+def extract_doc_identifiers(title: str) -> list[str]:
     """Extract document identifiers from title (ISO numbers, MDCG refs, etc.)."""
     identifiers = []
 
     # ISO/IEC standards (e.g., ISO 13485, IEC 62304, ISO/IEC 22989)
-    iso_matches = re.findall(r'(?:iso|iec|en)[\s/]*(\d{4,5})(?:[-:]?\d+)?', title.lower())
+    iso_matches = re.findall(r"(?:iso|iec|en)[\s/]*(\d{4,5})(?:[-:]?\d+)?", title.lower())
     identifiers.extend([f"iso{m}" for m in iso_matches])
 
     # MDCG guidance (e.g., MDCG 2019-11, MDCG 2020-1)
-    mdcg_matches = re.findall(r'mdcg[\s]*(\d{4})[\s-]*(\d+)', title.lower())
+    mdcg_matches = re.findall(r"mdcg[\s]*(\d{4})[\s-]*(\d+)", title.lower())
     identifiers.extend([f"mdcg{y}-{n}" for y, n in mdcg_matches])
 
     # CFR references (e.g., 21 CFR 820)
-    cfr_matches = re.findall(r'(?:21\s*)?cfr[\s]*(?:part\s*)?(\d+)', title.lower())
+    cfr_matches = re.findall(r"(?:21\s*)?cfr[\s]*(?:part\s*)?(\d+)", title.lower())
     identifiers.extend([f"cfr{m}" for m in cfr_matches])
 
     # MDR/IVDR/MDD
-    if 'mdr' in title.lower() and '2017' in title:
-        identifiers.append('mdr2017/745')
-    if 'ivdr' in title.lower() and '2017' in title:
-        identifiers.append('ivdr2017/746')
-    if 'mdd' in title.lower() and '93' in title:
-        identifiers.append('mdd93/42')
+    if "mdr" in title.lower() and "2017" in title:
+        identifiers.append("mdr2017/745")
+    if "ivdr" in title.lower() and "2017" in title:
+        identifiers.append("ivdr2017/746")
+    if "mdd" in title.lower() and "93" in title:
+        identifiers.append("mdd93/42")
 
     # CELEX references
-    celex_match = re.search(r'celex.*?(\d{4})[r]?(\d{3,4})', title.lower())
+    celex_match = re.search(r"celex.*?(\d{4})[r]?(\d{3,4})", title.lower())
     if celex_match:
         identifiers.append(f"celex{celex_match.group(1)}{celex_match.group(2)}")
 
@@ -119,17 +120,13 @@ def calculate_match_score(ref_doc: dict, kb_title: str, kb_jurisdiction: str) ->
     return min(score, 1.0)
 
 
-def find_best_match(ref_doc: dict, kb_docs: List[dict]) -> Tuple[Optional[dict], float]:
+def find_best_match(ref_doc: dict, kb_docs: list[dict]) -> tuple[Optional[dict], float]:
     """Find the best matching KB document for a reference document."""
     best_match = None
     best_score = 0.0
 
     for kb_doc in kb_docs:
-        score = calculate_match_score(
-            ref_doc,
-            kb_doc["title"],
-            kb_doc.get("jurisdiction", "")
-        )
+        score = calculate_match_score(ref_doc, kb_doc["title"], kb_doc.get("jurisdiction", ""))
         if score > best_score:
             best_score = score
             best_match = kb_doc
@@ -140,7 +137,7 @@ def find_best_match(ref_doc: dict, kb_docs: List[dict]) -> Tuple[Optional[dict],
     return None, 0.0
 
 
-def run_gap_analysis(db_path: str) -> Dict[str, List[MatchResult]]:
+def run_gap_analysis(db_path: str) -> dict[str, list[MatchResult]]:
     """Run gap analysis comparing KB against reference documents."""
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
@@ -171,21 +168,21 @@ def run_gap_analysis(db_path: str) -> Dict[str, List[MatchResult]]:
                     matched=match is not None,
                     kb_doc_id=match["id"] if match else None,
                     kb_doc_title=match["title"] if match else None,
-                    match_confidence=confidence
+                    match_confidence=confidence,
                 )
                 results[jurisdiction].append(result)
 
     return results
 
 
-def get_gap_summary(results: Dict[str, List[MatchResult]]) -> dict:
+def get_gap_summary(results: dict[str, list[MatchResult]]) -> dict:
     """Generate summary statistics from gap analysis results."""
     summary = {
         "total_reference": 0,
         "total_matched": 0,
         "total_missing": 0,
         "mandatory_missing": 0,
-        "by_jurisdiction": {}
+        "by_jurisdiction": {},
     }
 
     for jurisdiction, matches in results.items():
@@ -204,17 +201,19 @@ def get_gap_summary(results: Dict[str, List[MatchResult]]) -> dict:
             "matched": jur_matched,
             "missing": jur_missing,
             "mandatory_missing": jur_mandatory_missing,
-            "coverage": round(jur_matched / jur_total * 100, 1) if jur_total > 0 else 0
+            "coverage": round(jur_matched / jur_total * 100, 1) if jur_total > 0 else 0,
         }
 
-    summary["overall_coverage"] = round(
-        summary["total_matched"] / summary["total_reference"] * 100, 1
-    ) if summary["total_reference"] > 0 else 0
+    summary["overall_coverage"] = (
+        round(summary["total_matched"] / summary["total_reference"] * 100, 1)
+        if summary["total_reference"] > 0
+        else 0
+    )
 
     return summary
 
 
-def print_gap_report(results: Dict[str, List[MatchResult]], show_matched: bool = False):
+def print_gap_report(results: dict[str, list[MatchResult]], show_matched: bool = False):
     """Print a formatted gap analysis report."""
     summary = get_gap_summary(results)
 
@@ -240,8 +239,10 @@ def print_gap_report(results: Dict[str, List[MatchResult]], show_matched: bool =
         jur_stats = summary["by_jurisdiction"][jurisdiction]
 
         print("-" * 70)
-        print(f"{jurisdiction} - Coverage: {jur_stats['coverage']}% "
-              f"({jur_stats['matched']}/{jur_stats['total']})")
+        print(
+            f"{jurisdiction} - Coverage: {jur_stats['coverage']}% "
+            f"({jur_stats['matched']}/{jur_stats['total']})"
+        )
         print("-" * 70)
 
         # Group by category
@@ -273,8 +274,9 @@ def print_gap_report(results: Dict[str, List[MatchResult]], show_matched: bool =
         print()
 
 
-def get_missing_docs(results: Dict[str, List[MatchResult]],
-                     mandatory_only: bool = False) -> List[MatchResult]:
+def get_missing_docs(
+    results: dict[str, list[MatchResult]], mandatory_only: bool = False
+) -> list[MatchResult]:
     """Get list of missing documents."""
     missing = []
     for matches in results.values():
@@ -285,27 +287,38 @@ def get_missing_docs(results: Dict[str, List[MatchResult]],
     return missing
 
 
-def export_gap_report_csv(results: Dict[str, List[MatchResult]], output_path: str):
+def export_gap_report_csv(results: dict[str, list[MatchResult]], output_path: str):
     """Export gap analysis to CSV."""
     import csv
 
-    with open(output_path, 'w', newline='', encoding='utf-8') as f:
+    with open(output_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
-        writer.writerow([
-            'Jurisdiction', 'Category', 'Ref ID', 'Title', 'Description',
-            'Mandatory', 'Status', 'KB Match', 'Confidence'
-        ])
+        writer.writerow(
+            [
+                "Jurisdiction",
+                "Category",
+                "Ref ID",
+                "Title",
+                "Description",
+                "Mandatory",
+                "Status",
+                "KB Match",
+                "Confidence",
+            ]
+        )
 
-        for jurisdiction, matches in results.items():
+        for _jurisdiction, matches in results.items():
             for m in matches:
-                writer.writerow([
-                    m.jurisdiction,
-                    m.category,
-                    m.ref_id,
-                    m.ref_title,
-                    m.ref_description,
-                    'Yes' if m.mandatory else 'No',
-                    'Found' if m.matched else 'MISSING',
-                    m.kb_doc_title or '',
-                    f"{m.match_confidence:.0%}" if m.matched else ''
-                ])
+                writer.writerow(
+                    [
+                        m.jurisdiction,
+                        m.category,
+                        m.ref_id,
+                        m.ref_title,
+                        m.ref_description,
+                        "Yes" if m.mandatory else "No",
+                        "Found" if m.matched else "MISSING",
+                        m.kb_doc_title or "",
+                        f"{m.match_confidence:.0%}" if m.matched else "",
+                    ]
+                )

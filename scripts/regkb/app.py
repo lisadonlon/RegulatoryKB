@@ -4,50 +4,53 @@ Regulatory Knowledge Base - Web Interface
 A Streamlit-based web UI for managing and searching regulatory documents.
 """
 
-import os
 import sys
 from pathlib import Path
 
 # Add the scripts directory to the path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import streamlit as st
+
 import pandas as pd
-from datetime import datetime
+import streamlit as st
 
 from regkb.config import config
 from regkb.database import Database
 from regkb.importer import DocumentImporter
 from regkb.search import SearchEngine
-from regkb.extraction import TextExtractor
 
 # Page configuration
 st.set_page_config(
     page_title="Regulatory Knowledge Base",
     page_icon="📚",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
+
 
 # Initialize components (cached)
 @st.cache_resource
 def get_database():
     return Database()
 
+
 @st.cache_resource
 def get_search_engine():
     return SearchEngine()
 
+
 @st.cache_resource
 def get_importer():
     return DocumentImporter()
+
 
 db = get_database()
 search_engine = get_search_engine()
 importer = get_importer()
 
 # Custom CSS
-st.markdown("""
+st.markdown(
+    """
 <style>
     .stButton > button {
         width: 100%;
@@ -75,7 +78,9 @@ st.markdown("""
         font-size: 0.8rem;
     }
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 
 def main():
@@ -86,7 +91,7 @@ def main():
     page = st.sidebar.radio(
         "Navigation",
         ["🔍 Search", "📄 Browse", "➕ Add Document", "📊 Statistics", "⚙️ Settings"],
-        label_visibility="collapsed"
+        label_visibility="collapsed",
     )
 
     st.sidebar.markdown("---")
@@ -117,7 +122,7 @@ def search_page():
         query = st.text_input(
             "Search query",
             placeholder="Enter your search (e.g., 'MDR clinical evaluation requirements')",
-            label_visibility="collapsed"
+            label_visibility="collapsed",
         )
     with col2:
         search_clicked = st.button("Search", type="primary", use_container_width=True)
@@ -143,7 +148,7 @@ def search_page():
                     limit=num_results,
                     document_type=None if selected_type == "All" else selected_type,
                     jurisdiction=None if selected_jurisdiction == "All" else selected_jurisdiction,
-                    include_excerpt=True
+                    include_excerpt=True,
                 )
 
                 if results:
@@ -155,19 +160,25 @@ def search_page():
 
                             with col1:
                                 st.markdown(f"**{i}. {doc['title']}**")
-                                st.caption(f"📁 {doc['document_type']} | 🌍 {doc['jurisdiction']} | Score: {doc.get('relevance_score', 0):.3f}")
+                                st.caption(
+                                    f"📁 {doc['document_type']} | 🌍 {doc['jurisdiction']} | Score: {doc.get('relevance_score', 0):.3f}"
+                                )
 
-                                if doc.get('excerpt'):
-                                    excerpt = doc['excerpt'][:300] + "..." if len(doc.get('excerpt', '')) > 300 else doc.get('excerpt', '')
+                                if doc.get("excerpt"):
+                                    excerpt = (
+                                        doc["excerpt"][:300] + "..."
+                                        if len(doc.get("excerpt", "")) > 300
+                                        else doc.get("excerpt", "")
+                                    )
                                     st.text(excerpt)
 
                             with col2:
                                 if st.button("View", key=f"view_{doc['id']}"):
-                                    st.session_state.selected_doc = doc['id']
+                                    st.session_state.selected_doc = doc["id"]
                                     st.session_state.page = "detail"
                                     st.rerun()
 
-                                file_path = Path(doc['file_path'])
+                                file_path = Path(doc["file_path"])
                                 if file_path.exists():
                                     with open(file_path, "rb") as f:
                                         st.download_button(
@@ -175,7 +186,7 @@ def search_page():
                                             f,
                                             file_name=file_path.name,
                                             mime="application/pdf",
-                                            key=f"dl_{doc['id']}"
+                                            key=f"dl_{doc['id']}",
                                         )
 
                             st.markdown("---")
@@ -198,7 +209,7 @@ def browse_page():
     st.title("📄 Browse Documents")
 
     # Check if viewing a specific document
-    if hasattr(st.session_state, 'selected_doc') and st.session_state.get('page') == 'detail':
+    if hasattr(st.session_state, "selected_doc") and st.session_state.get("page") == "detail":
         document_detail_view(st.session_state.selected_doc)
         if st.button("← Back to Browse"):
             st.session_state.page = "browse"
@@ -212,7 +223,9 @@ def browse_page():
         filter_type = st.selectbox("Filter by Type", doc_types, key="browse_type")
     with col2:
         jurisdictions = ["All"] + config.jurisdictions
-        filter_jurisdiction = st.selectbox("Filter by Jurisdiction", jurisdictions, key="browse_jur")
+        filter_jurisdiction = st.selectbox(
+            "Filter by Jurisdiction", jurisdictions, key="browse_jur"
+        )
     with col3:
         per_page = st.selectbox("Documents per page", [10, 25, 50, 100], index=1)
 
@@ -220,14 +233,14 @@ def browse_page():
     documents = db.list_documents(
         document_type=None if filter_type == "All" else filter_type,
         jurisdiction=None if filter_jurisdiction == "All" else filter_jurisdiction,
-        limit=per_page
+        limit=per_page,
     )
 
     if documents:
         # Create dataframe for display
         df = pd.DataFrame(documents)
-        df = df[['id', 'title', 'document_type', 'jurisdiction', 'import_date']]
-        df.columns = ['ID', 'Title', 'Type', 'Jurisdiction', 'Imported']
+        df = df[["id", "title", "document_type", "jurisdiction", "import_date"]]
+        df.columns = ["ID", "Title", "Type", "Jurisdiction", "Imported"]
 
         st.dataframe(
             df,
@@ -239,7 +252,7 @@ def browse_page():
                 "Type": st.column_config.TextColumn(width="medium"),
                 "Jurisdiction": st.column_config.TextColumn(width="medium"),
                 "Imported": st.column_config.TextColumn(width="medium"),
-            }
+            },
         )
 
         # Document selection
@@ -260,7 +273,7 @@ def document_detail_view(doc_id):
         st.error(f"Document {doc_id} not found.")
         return
 
-    st.title(doc['title'])
+    st.title(doc["title"])
 
     col1, col2 = st.columns([2, 1])
 
@@ -277,51 +290,52 @@ def document_detail_view(doc_id):
             st.markdown(f"**Latest:** {'Yes' if doc.get('is_latest') else 'No'}")
             st.markdown(f"**Imported:** {doc['import_date'][:10]}")
 
-        if doc.get('source_url'):
+        if doc.get("source_url"):
             st.markdown(f"**Source:** [{doc['source_url']}]({doc['source_url']})")
 
-        if doc.get('description'):
+        if doc.get("description"):
             st.markdown(f"**Description:** {doc['description']}")
 
         # File path
         st.markdown(f"**File:** `{doc['file_path']}`")
 
         # Download button
-        file_path = Path(doc['file_path'])
+        file_path = Path(doc["file_path"])
         if file_path.exists():
             with open(file_path, "rb") as f:
                 st.download_button(
-                    "📥 Download PDF",
-                    f,
-                    file_name=file_path.name,
-                    mime="application/pdf"
+                    "📥 Download PDF", f, file_name=file_path.name, mime="application/pdf"
                 )
 
     with col2:
         st.subheader("Edit Metadata")
 
         with st.form("edit_form"):
-            new_title = st.text_input("Title", value=doc['title'])
+            new_title = st.text_input("Title", value=doc["title"])
             new_type = st.selectbox(
                 "Type",
                 config.document_types,
-                index=config.document_types.index(doc['document_type']) if doc['document_type'] in config.document_types else 0
+                index=config.document_types.index(doc["document_type"])
+                if doc["document_type"] in config.document_types
+                else 0,
             )
             new_jurisdiction = st.selectbox(
                 "Jurisdiction",
                 config.jurisdictions,
-                index=config.jurisdictions.index(doc['jurisdiction']) if doc['jurisdiction'] in config.jurisdictions else 0
+                index=config.jurisdictions.index(doc["jurisdiction"])
+                if doc["jurisdiction"] in config.jurisdictions
+                else 0,
             )
-            new_version = st.text_input("Version", value=doc.get('version') or '')
-            new_description = st.text_area("Description", value=doc.get('description') or '')
+            new_version = st.text_input("Version", value=doc.get("version") or "")
+            new_description = st.text_area("Description", value=doc.get("description") or "")
 
             if st.form_submit_button("Save Changes"):
                 updates = {
-                    'title': new_title,
-                    'document_type': new_type,
-                    'jurisdiction': new_jurisdiction,
-                    'version': new_version if new_version else None,
-                    'description': new_description if new_description else None,
+                    "title": new_title,
+                    "document_type": new_type,
+                    "jurisdiction": new_jurisdiction,
+                    "version": new_version if new_version else None,
+                    "description": new_description if new_description else None,
                 }
                 if db.update_document(doc_id, **updates):
                     st.success("Document updated!")
@@ -330,13 +344,18 @@ def document_detail_view(doc_id):
                     st.error("Failed to update document.")
 
     # Extracted text preview
-    if doc.get('extracted_path'):
-        extracted_path = Path(doc['extracted_path'])
+    if doc.get("extracted_path"):
+        extracted_path = Path(doc["extracted_path"])
         if extracted_path.exists():
             st.subheader("Extracted Text Preview")
-            with open(extracted_path, 'r', encoding='utf-8') as f:
+            with open(extracted_path, encoding="utf-8") as f:
                 text = f.read()
-            st.text_area("Content", text[:5000] + ("..." if len(text) > 5000 else ""), height=300, disabled=True)
+            st.text_area(
+                "Content",
+                text[:5000] + ("..." if len(text) > 5000 else ""),
+                height=300,
+                disabled=True,
+            )
 
 
 def add_document_page():
@@ -347,14 +366,16 @@ def add_document_page():
     with tab1:
         st.subheader("Upload a PDF")
 
-        uploaded_file = st.file_uploader("Choose a PDF file", type=['pdf'])
+        uploaded_file = st.file_uploader("Choose a PDF file", type=["pdf"])
 
         if uploaded_file:
             st.markdown("### Document Metadata")
 
             col1, col2 = st.columns(2)
             with col1:
-                title = st.text_input("Title", value=uploaded_file.name.replace('.pdf', '').replace('_', ' '))
+                title = st.text_input(
+                    "Title", value=uploaded_file.name.replace(".pdf", "").replace("_", " ")
+                )
                 doc_type = st.selectbox("Document Type", config.document_types)
             with col2:
                 jurisdiction = st.selectbox("Jurisdiction", config.jurisdictions)
@@ -369,17 +390,17 @@ def add_document_page():
                     temp_path = config.base_dir / "temp" / uploaded_file.name
                     temp_path.parent.mkdir(parents=True, exist_ok=True)
 
-                    with open(temp_path, 'wb') as f:
+                    with open(temp_path, "wb") as f:
                         f.write(uploaded_file.getbuffer())
 
                     # Import
                     metadata = {
-                        'title': title,
-                        'document_type': doc_type,
-                        'jurisdiction': jurisdiction,
-                        'version': version if version else None,
-                        'source_url': source_url if source_url else None,
-                        'description': description if description else None,
+                        "title": title,
+                        "document_type": doc_type,
+                        "jurisdiction": jurisdiction,
+                        "version": version if version else None,
+                        "source_url": source_url if source_url else None,
+                        "description": description if description else None,
                     }
 
                     doc_id = importer.import_file(temp_path, metadata)
@@ -413,12 +434,12 @@ def add_document_page():
             if st.button("Download & Add", type="primary"):
                 with st.spinner("Downloading and processing..."):
                     metadata = {
-                        'title': title if title else None,
-                        'document_type': doc_type,
-                        'jurisdiction': jurisdiction,
-                        'version': version if version else None,
-                        'source_url': url,
-                        'description': description if description else None,
+                        "title": title if title else None,
+                        "document_type": doc_type,
+                        "jurisdiction": jurisdiction,
+                        "version": version if version else None,
+                        "source_url": url,
+                        "description": description if description else None,
                     }
 
                     doc_id = importer.import_from_url(url, metadata if title else None)
@@ -460,7 +481,9 @@ def add_document_page():
 
                     # Prompt to reindex
                     if result.imported > 0:
-                        st.info("New documents added. Consider reindexing for better search results.")
+                        st.info(
+                            "New documents added. Consider reindexing for better search results."
+                        )
                         if st.button("Reindex Now"):
                             with st.spinner("Reindexing..."):
                                 search_engine.reindex_all()
@@ -487,8 +510,7 @@ def statistics_page():
         st.subheader("Documents by Type")
         if stats.get("by_type"):
             df_type = pd.DataFrame(
-                list(stats["by_type"].items()),
-                columns=["Type", "Count"]
+                list(stats["by_type"].items()), columns=["Type", "Count"]
             ).sort_values("Count", ascending=False)
             st.bar_chart(df_type.set_index("Type"))
         else:
@@ -498,8 +520,7 @@ def statistics_page():
         st.subheader("Documents by Jurisdiction")
         if stats.get("by_jurisdiction"):
             df_jur = pd.DataFrame(
-                list(stats["by_jurisdiction"].items()),
-                columns=["Jurisdiction", "Count"]
+                list(stats["by_jurisdiction"].items()), columns=["Jurisdiction", "Count"]
             ).sort_values("Count", ascending=False)
             st.bar_chart(df_jur.set_index("Jurisdiction"))
         else:

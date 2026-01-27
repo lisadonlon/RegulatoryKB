@@ -7,10 +7,8 @@ compatible with Windows Task Scheduler and cron.
 
 import json
 import logging
-import os
 import sys
 from datetime import datetime
-from pathlib import Path
 from typing import Optional
 
 from ..config import config
@@ -33,9 +31,9 @@ class SchedulerState:
         """Load state from file."""
         if self.state_path.exists():
             try:
-                with open(self.state_path, "r") as f:
+                with open(self.state_path) as f:
                     return json.load(f)
-            except (json.JSONDecodeError, IOError):
+            except (OSError, json.JSONDecodeError):
                 pass
         return {
             "last_weekly_run": None,
@@ -144,8 +142,7 @@ class SchedulerState:
 
         # Run if: correct day and hasn't run this month
         if now.day == monthly_day:
-            if (self.last_monthly_run.year < now.year or
-                self.last_monthly_run.month < now.month):
+            if self.last_monthly_run.year < now.year or self.last_monthly_run.month < now.month:
                 return True
 
         return False
@@ -157,6 +154,7 @@ class SchedulerState:
 
         poll_interval = config.get("intelligence.reply_processing.poll_interval", 30)
         from datetime import timedelta
+
         next_poll = self.last_imap_poll + timedelta(minutes=poll_interval)
 
         return datetime.now() >= next_poll
@@ -265,10 +263,14 @@ def generate_batch_script(
     reports_dir = base_dir / "reports"
 
     email_flag = "--email" if include_email else "--no-email"
-    export_flag = f'--export "{reports_dir}\\intel_{script_type}_%date:~-4,4%%date:~-7,2%%date:~-10,2%.html"' if export_report else ""
+    export_flag = (
+        f'--export "{reports_dir}\\intel_{script_type}_%date:~-4,4%%date:~-7,2%%date:~-10,2%.html"'
+        if export_report
+        else ""
+    )
 
     if script_type == "daily":
-        command = f"regkb intel email --type daily"
+        command = "regkb intel email --type daily"
     elif script_type == "monthly":
         command = f"regkb intel run -d 30 {email_flag} {export_flag}"
     else:  # weekly

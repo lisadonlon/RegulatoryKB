@@ -164,7 +164,6 @@ ACQUISITION_LIST = {
             },
         ],
     },
-
     # ===========================================
     # TIER 1: UK
     # ===========================================
@@ -224,7 +223,6 @@ ACQUISITION_LIST = {
             },
         ],
     },
-
     # ===========================================
     # TIER 1: US (FDA)
     # ===========================================
@@ -436,7 +434,6 @@ ACQUISITION_LIST = {
             },
         ],
     },
-
     # ===========================================
     # TIER 2: Canada
     # ===========================================
@@ -495,7 +492,6 @@ ACQUISITION_LIST = {
             },
         ],
     },
-
     # ===========================================
     # TIER 2: Australia
     # ===========================================
@@ -555,7 +551,6 @@ ACQUISITION_LIST = {
             },
         ],
     },
-
     # ===========================================
     # INTERNATIONAL: ISO Standards
     # ===========================================
@@ -692,7 +687,6 @@ ACQUISITION_LIST = {
             },
         ],
     },
-
     # ===========================================
     # INTERNATIONAL: IMDRF
     # ===========================================
@@ -742,7 +736,6 @@ ACQUISITION_LIST = {
             },
         ],
     },
-
     # ===========================================
     # INTERNATIONAL: MDSAP
     # ===========================================
@@ -835,9 +828,9 @@ def print_acquisition_list(mandatory_only=False, free_only=False):
     for doc in docs:
         if doc["jurisdiction"] != current_jur:
             current_jur = doc["jurisdiction"]
-            print(f"\n{'='*60}")
+            print(f"\n{'=' * 60}")
             print(f"  {current_jur}")
-            print(f"{'='*60}")
+            print(f"{'=' * 60}")
 
         mandatory = "[MANDATORY]" if doc.get("mandatory") else ""
         free = "[FREE]" if doc.get("free", True) else f"[~{doc.get('price_approx', 'PAID')}]"
@@ -857,18 +850,31 @@ def export_acquisition_csv(output_path: str, mandatory_only=False, free_only=Fal
     if free_only:
         docs = [d for d in docs if d.get("free", True)]
 
-    with open(output_path, 'w', newline='', encoding='utf-8') as f:
+    with open(output_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
-        writer.writerow(['Jurisdiction', 'Category', 'Title', 'Description', 'URL', 'Mandatory', 'Free', 'Notes'])
+        writer.writerow(
+            [
+                "Jurisdiction",
+                "Category",
+                "Title",
+                "Description",
+                "URL",
+                "Mandatory",
+                "Free",
+                "Notes",
+            ]
+        )
 
         for doc in docs:
-            writer.writerow([
-                doc['jurisdiction'],
-                doc['category'],
-                doc['title'],
-                doc['description'],
-                doc['url'],
-                'Yes' if doc.get('mandatory') else 'No',
-                'Yes' if doc.get('free', True) else 'No',
-                doc.get('note', doc.get('price_approx', ''))
-            ])
+            writer.writerow(
+                [
+                    doc["jurisdiction"],
+                    doc["category"],
+                    doc["title"],
+                    doc["description"],
+                    doc["url"],
+                    "Yes" if doc.get("mandatory") else "No",
+                    "Yes" if doc.get("free", True) else "No",
+                    doc.get("note", doc.get("price_approx", "")),
+                ]
+            )

@@ -6,7 +6,7 @@ Combines full-text search with semantic vector search for natural language queri
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 import chromadb
 from chromadb.config import Settings
@@ -44,13 +44,11 @@ class SearchEngine:
             chroma_path.mkdir(parents=True, exist_ok=True)
 
             self._chroma_client = chromadb.PersistentClient(
-                path=str(chroma_path),
-                settings=Settings(anonymized_telemetry=False)
+                path=str(chroma_path), settings=Settings(anonymized_telemetry=False)
             )
 
             self._collection = self._chroma_client.get_or_create_collection(
-                name="documents",
-                metadata={"hnsw:space": "cosine"}
+                name="documents", metadata={"hnsw:space": "cosine"}
             )
 
             self._initialized = True
@@ -60,7 +58,7 @@ class SearchEngine:
             logger.error(f"Failed to initialize search engine: {e}")
             raise
 
-    def index_document(self, doc_id: int, text: str, metadata: Dict[str, Any]) -> bool:
+    def index_document(self, doc_id: int, text: str, metadata: dict[str, Any]) -> bool:
         """
         Index a document for vector search.
 
@@ -90,7 +88,7 @@ class SearchEngine:
                 ids=[str(doc_id)],
                 embeddings=[embedding.tolist()],
                 metadatas=[clean_metadata],
-                documents=[text[:1000]]  # Store snippet for context
+                documents=[text[:1000]],  # Store snippet for context
             )
 
             logger.debug(f"Indexed document {doc_id}")
@@ -108,7 +106,7 @@ class SearchEngine:
         jurisdiction: Optional[str] = None,
         latest_only: bool = True,
         include_excerpt: bool = True,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Search for documents using natural language query.
 
@@ -131,9 +129,7 @@ class SearchEngine:
 
         # Vector search
         try:
-            vector_results = self._vector_search(
-                query, limit * 2, document_type, jurisdiction
-            )
+            vector_results = self._vector_search(query, limit * 2, document_type, jurisdiction)
             results.extend(vector_results)
         except Exception as e:
             logger.warning(f"Vector search failed: {e}")
@@ -175,7 +171,7 @@ class SearchEngine:
         limit: int,
         document_type: Optional[str] = None,
         jurisdiction: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Perform vector similarity search.
 
@@ -213,7 +209,9 @@ class SearchEngine:
                 if doc:
                     doc["search_type"] = "vector"
                     # Convert distance to similarity score (ChromaDB uses L2 by default)
-                    distance = chroma_results["distances"][0][i] if chroma_results["distances"] else 0
+                    distance = (
+                        chroma_results["distances"][0][i] if chroma_results["distances"] else 0
+                    )
                     doc["relevance_score"] = 1.0 / (1.0 + distance)
                     results.append(doc)
 
@@ -240,7 +238,7 @@ class SearchEngine:
             return ""
 
         try:
-            with open(extracted_path, "r", encoding="utf-8") as f:
+            with open(extracted_path, encoding="utf-8") as f:
                 text = f.read()
 
             # Find query terms in text
@@ -251,7 +249,7 @@ class SearchEngine:
             best_score = 0
 
             for i in range(0, len(text_lower) - 100, 50):
-                chunk = text_lower[i:i + 200]
+                chunk = text_lower[i : i + 200]
                 score = sum(1 for term in query_terms if term in chunk)
                 if score > best_score:
                     best_score = score
@@ -294,7 +292,7 @@ class SearchEngine:
                 # Get extracted text
                 extracted_path = Path(doc.get("extracted_path", ""))
                 if extracted_path.exists():
-                    with open(extracted_path, "r", encoding="utf-8") as f:
+                    with open(extracted_path, encoding="utf-8") as f:
                         text = f.read()
                 else:
                     text = doc.get("title", "") + " " + doc.get("description", "")

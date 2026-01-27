@@ -6,10 +6,11 @@ and full-text search using FTS5.
 """
 
 import sqlite3
+from collections.abc import Generator
 from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Optional, Tuple
+from typing import Any, Optional
 
 from .config import config
 
@@ -145,9 +146,15 @@ class Database:
 
             # Indexes for common queries
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_documents_hash ON documents(hash)")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_documents_type ON documents(document_type)")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_documents_jurisdiction ON documents(jurisdiction)")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_documents_is_latest ON documents(is_latest)")
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_documents_type ON documents(document_type)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_documents_jurisdiction ON documents(jurisdiction)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_documents_is_latest ON documents(is_latest)"
+            )
 
     def document_exists(self, file_hash: str) -> bool:
         """
@@ -160,10 +167,7 @@ class Database:
             True if document exists, False otherwise.
         """
         with self.connection() as conn:
-            cursor = conn.execute(
-                "SELECT 1 FROM documents WHERE hash = ?",
-                (file_hash,)
-            )
+            cursor = conn.execute("SELECT 1 FROM documents WHERE hash = ?", (file_hash,))
             return cursor.fetchone() is not None
 
     def add_document(
@@ -207,13 +211,23 @@ class Database:
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
-                    file_hash, title, document_type, jurisdiction, file_path,
-                    version, source_url, description, download_date, now
-                )
+                    file_hash,
+                    title,
+                    document_type,
+                    jurisdiction,
+                    file_path,
+                    version,
+                    source_url,
+                    description,
+                    download_date,
+                    now,
+                ),
             )
             return cursor.lastrowid
 
-    def get_document(self, doc_id: Optional[int] = None, file_hash: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    def get_document(
+        self, doc_id: Optional[int] = None, file_hash: Optional[str] = None
+    ) -> Optional[dict[str, Any]]:
         """
         Get a document by ID or hash.
 
@@ -250,9 +264,15 @@ class Database:
             return False
 
         allowed_fields = {
-            "title", "document_type", "jurisdiction", "version",
-            "is_latest", "source_url", "description", "extracted_path",
-            "superseded_by"
+            "title",
+            "document_type",
+            "jurisdiction",
+            "version",
+            "is_latest",
+            "source_url",
+            "description",
+            "extracted_path",
+            "superseded_by",
         }
 
         updates = {k: v for k, v in kwargs.items() if k in allowed_fields}
@@ -265,10 +285,7 @@ class Database:
         values = list(updates.values()) + [doc_id]
 
         with self.connection() as conn:
-            cursor = conn.execute(
-                f"UPDATE documents SET {set_clause} WHERE id = ?",
-                values
-            )
+            cursor = conn.execute(f"UPDATE documents SET {set_clause} WHERE id = ?", values)
             return cursor.rowcount > 0
 
     def list_documents(
@@ -278,7 +295,7 @@ class Database:
         latest_only: bool = True,
         limit: int = 100,
         offset: int = 0,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         List documents with optional filtering.
 
@@ -317,7 +334,7 @@ class Database:
                 ORDER BY title
                 LIMIT ? OFFSET ?
                 """,
-                params
+                params,
             )
             return [dict(row) for row in cursor.fetchall()]
 
@@ -326,7 +343,7 @@ class Database:
         query: str,
         limit: int = 10,
         latest_only: bool = True,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Search documents using full-text search.
 
@@ -351,11 +368,11 @@ class Database:
                 ORDER BY relevance
                 LIMIT ?
                 """,
-                (query, limit)
+                (query, limit),
             )
             return [dict(row) for row in cursor.fetchall()]
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """
         Get database statistics.
 
@@ -379,7 +396,9 @@ class Database:
             cursor = conn.execute(
                 "SELECT jurisdiction, COUNT(*) as count FROM documents GROUP BY jurisdiction"
             )
-            stats["by_jurisdiction"] = {row["jurisdiction"]: row["count"] for row in cursor.fetchall()}
+            stats["by_jurisdiction"] = {
+                row["jurisdiction"]: row["count"] for row in cursor.fetchall()
+            }
 
             # Latest vs all versions
             cursor = conn.execute("SELECT COUNT(*) FROM documents WHERE is_latest = 1")
@@ -404,7 +423,7 @@ class Database:
         with self.connection() as conn:
             cursor = conn.execute(
                 "INSERT INTO import_batches (source_path, started_at) VALUES (?, ?)",
-                (source_path, datetime.now().isoformat())
+                (source_path, datetime.now().isoformat()),
             )
             return cursor.lastrowid
 

@@ -9,7 +9,7 @@ import io
 import logging
 import re
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional
 
 import fitz  # PyMuPDF
 
@@ -56,7 +56,7 @@ class TextExtractor:
         pdf_path: Path,
         doc_id: int,
         force_ocr: bool = False,
-    ) -> Tuple[bool, Optional[Path], Optional[str]]:
+    ) -> tuple[bool, Optional[Path], Optional[str]]:
         """
         Extract text from a PDF and save as Markdown.
 
@@ -271,7 +271,7 @@ class TextExtractor:
         """
         output_path = self.output_dir / f"{doc_id}.md"
         if output_path.exists():
-            with open(output_path, "r", encoding="utf-8") as f:
+            with open(output_path, encoding="utf-8") as f:
                 return f.read()
         return None
 
@@ -280,7 +280,7 @@ class TextExtractor:
         pdf_path: Path,
         doc_id: int,
         force_ocr: bool = False,
-    ) -> Tuple[bool, Optional[Path], Optional[str]]:
+    ) -> tuple[bool, Optional[Path], Optional[str]]:
         """
         Re-extract text from a PDF, overwriting any existing extraction.
 

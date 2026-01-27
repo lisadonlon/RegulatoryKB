@@ -17,30 +17,40 @@ from tqdm import tqdm
 load_dotenv()
 
 from . import __version__
+from .acquisition_list import export_acquisition_csv, get_acquisition_list_flat
 from .config import config
 from .database import db
-from .extraction import extractor
-from .importer import importer
-from .search import search_engine
-from .gap_analysis import run_gap_analysis, print_gap_report, get_gap_summary, export_gap_report_csv
-from .acquisition_list import get_acquisition_list_flat, export_acquisition_csv, ACQUISITION_LIST
 from .downloader import downloader
-from .version_tracker import check_all_versions, print_version_report, get_version_summary, export_version_report_csv
-from .intelligence.fetcher import fetcher as newsletter_fetcher
-from .intelligence.filter import content_filter, FilterResult
+from .extraction import extractor
+from .gap_analysis import export_gap_report_csv, get_gap_summary, print_gap_report, run_gap_analysis
+from .importer import importer
 from .intelligence.analyzer import analyzer as kb_analyzer
-from .intelligence.summarizer import summarizer as intel_summarizer
-from .intelligence.emailer import emailer as intel_emailer
-from .intelligence.scheduler import scheduler_state, generate_windows_task_xml, generate_batch_script, generate_imap_batch_script
 from .intelligence.digest_tracker import digest_tracker
-from .intelligence.url_resolver import url_resolver
+from .intelligence.emailer import emailer as intel_emailer
+from .intelligence.fetcher import fetcher as newsletter_fetcher
+from .intelligence.filter import FilterResult, content_filter
 from .intelligence.reply_handler import reply_handler
+from .intelligence.scheduler import (
+    generate_batch_script,
+    generate_imap_batch_script,
+    generate_windows_task_xml,
+    scheduler_state,
+)
+from .intelligence.summarizer import summarizer as intel_summarizer
+from .intelligence.url_resolver import url_resolver
+from .search import search_engine
+from .version_tracker import (
+    check_all_versions,
+    export_version_report_csv,
+    get_version_summary,
+    print_version_report,
+)
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[logging.StreamHandler()]
+    handlers=[logging.StreamHandler()],
 )
 logger = logging.getLogger(__name__)
 
@@ -51,9 +61,7 @@ def setup_file_logging() -> None:
         log_file = config.logs_dir / "regkb.log"
         log_file.parent.mkdir(parents=True, exist_ok=True)
         file_handler = logging.FileHandler(log_file)
-        file_handler.setFormatter(
-            logging.Formatter(config.get("logging.format"))
-        )
+        file_handler.setFormatter(logging.Formatter(config.get("logging.format")))
         logging.getLogger().addHandler(file_handler)
 
 
@@ -89,10 +97,7 @@ def import_docs(source: Path, recursive: bool, no_recursive: bool, interactive: 
         metadata_callback = None
 
     result = importer.import_directory(
-        source,
-        recursive=recursive,
-        metadata_callback=metadata_callback,
-        progress=True
+        source, recursive=recursive, metadata_callback=metadata_callback, progress=True
     )
 
     click.echo()
@@ -138,7 +143,11 @@ def _interactive_metadata(file_path: Path) -> dict:
 
 @cli.command()
 @click.option("--dry-run", is_flag=True, help="Show what would be imported without importing")
-@click.option("--delete", is_flag=True, help="Delete files after successful import (default: move to processed/)")
+@click.option(
+    "--delete",
+    is_flag=True,
+    help="Delete files after successful import (default: move to processed/)",
+)
 def ingest(dry_run: bool, delete: bool) -> None:
     """
     Auto-import PDFs from the pending inbox folder.
@@ -166,7 +175,9 @@ def ingest(dry_run: bool, delete: bool) -> None:
         for doc_type in config.document_types:
             (pending_dir / doc_type).mkdir(exist_ok=True)
         processed_dir.mkdir(exist_ok=True)
-        click.echo("Folder structure created. Drop PDFs into subfolders and run 'regkb ingest' again.")
+        click.echo(
+            "Folder structure created. Drop PDFs into subfolders and run 'regkb ingest' again."
+        )
         return
 
     # Find all PDFs
@@ -210,7 +221,9 @@ def ingest(dry_run: bool, delete: bool) -> None:
         }
 
         if dry_run:
-            click.echo(f"  [DRY RUN] {pdf_path.name} -> type={doc_type}, jurisdiction={jurisdiction}")
+            click.echo(
+                f"  [DRY RUN] {pdf_path.name} -> type={doc_type}, jurisdiction={jurisdiction}"
+            )
             continue
 
         try:
@@ -221,26 +234,32 @@ def ingest(dry_run: bool, delete: bool) -> None:
 
                 # Content validation warning
                 if importer.last_content_warning:
-                    click.echo(click.style(
-                        f"    !! {importer.last_content_warning}",
-                        fg="yellow",
-                    ))
+                    click.echo(
+                        click.style(
+                            f"    !! {importer.last_content_warning}",
+                            fg="yellow",
+                        )
+                    )
 
                 # Report version diff if detected
                 vdiff = importer.last_version_diff
                 if vdiff:
                     if vdiff.auto_superseded:
-                        click.echo(click.style(
-                            f"    -> Supersedes [{vdiff.old_doc_id}] {vdiff.old_doc_title} "
-                            f"(similarity: {vdiff.stats.similarity:.0%})",
-                            fg="cyan",
-                        ))
+                        click.echo(
+                            click.style(
+                                f"    -> Supersedes [{vdiff.old_doc_id}] {vdiff.old_doc_title} "
+                                f"(similarity: {vdiff.stats.similarity:.0%})",
+                                fg="cyan",
+                            )
+                        )
                     else:
-                        click.echo(click.style(
-                            f"    !! Possible match [{vdiff.old_doc_id}] {vdiff.old_doc_title} "
-                            f"(similarity: {vdiff.stats.similarity:.0%}) — NOT auto-superseded",
-                            fg="yellow",
-                        ))
+                        click.echo(
+                            click.style(
+                                f"    !! Possible match [{vdiff.old_doc_id}] {vdiff.old_doc_title} "
+                                f"(similarity: {vdiff.stats.similarity:.0%}) — NOT auto-superseded",
+                                fg="yellow",
+                            )
+                        )
                     if vdiff.diff_html_path:
                         click.echo(f"       Diff: {vdiff.diff_html_path}")
 
@@ -272,7 +291,9 @@ def ingest(dry_run: bool, delete: bool) -> None:
 @click.argument("query", nargs=-1, required=True)
 @click.option("-t", "--type", "doc_type", help="Filter by document type")
 @click.option("-j", "--jurisdiction", help="Filter by jurisdiction")
-@click.option("-n", "--limit", default=10, type=click.IntRange(1, 1000), help="Maximum results (1-1000)")
+@click.option(
+    "-n", "--limit", default=10, type=click.IntRange(1, 1000), help="Maximum results (1-1000)"
+)
 @click.option("--all-versions", is_flag=True, help="Include older versions")
 @click.option("--no-excerpt", is_flag=True, help="Don't show excerpts")
 def search(
@@ -328,7 +349,7 @@ def search(
 
             if doc.get("excerpt"):
                 # Clean excerpt of problematic characters for Windows console
-                excerpt = doc['excerpt'][:200].encode('ascii', 'replace').decode('ascii')
+                excerpt = doc["excerpt"][:200].encode("ascii", "replace").decode("ascii")
                 click.echo(f"   Excerpt: {excerpt}")
 
             click.echo()
@@ -403,10 +424,12 @@ def add(
         # Content validation warning
         if importer.last_content_warning:
             click.echo()
-            click.echo(click.style(
-                f"  Warning: {importer.last_content_warning}",
-                fg="yellow",
-            ))
+            click.echo(
+                click.style(
+                    f"  Warning: {importer.last_content_warning}",
+                    fg="yellow",
+                )
+            )
 
         # Report version diff if detected
         vdiff = importer.last_version_diff
@@ -416,10 +439,13 @@ def add(
                 click.echo(click.style("Prior version detected!", fg="cyan", bold=True))
                 click.echo(f"  Supersedes: [{vdiff.old_doc_id}] {vdiff.old_doc_title}")
             else:
-                click.echo(click.style(
-                    "Possible version match — NOT auto-superseded (similarity too low)",
-                    fg="yellow", bold=True,
-                ))
+                click.echo(
+                    click.style(
+                        "Possible version match — NOT auto-superseded (similarity too low)",
+                        fg="yellow",
+                        bold=True,
+                    )
+                )
                 click.echo(f"  Candidate: [{vdiff.old_doc_id}] {vdiff.old_doc_title}")
             click.echo(f"  {vdiff.stats.summary()}")
             if vdiff.diff_html_path:
@@ -434,7 +460,9 @@ def add(
 @click.option("-t", "--type", "doc_type", help="Filter by document type")
 @click.option("-j", "--jurisdiction", help="Filter by jurisdiction")
 @click.option("--all-versions", is_flag=True, help="Include older versions")
-@click.option("-n", "--limit", default=20, type=click.IntRange(1, 1000), help="Maximum results (1-1000)")
+@click.option(
+    "-n", "--limit", default=20, type=click.IntRange(1, 1000), help="Maximum results (1-1000)"
+)
 def list_docs(
     doc_type: Optional[str],
     jurisdiction: Optional[str],
@@ -584,6 +612,7 @@ def reindex() -> None:
     click.echo("Reindexing all documents...")
 
     with tqdm(total=100, desc="Indexing") as pbar:
+
         def progress(current: int, total: int) -> None:
             pbar.total = total
             pbar.n = current
@@ -614,10 +643,12 @@ def extract(doc_id: int, ocr: bool) -> None:
         from .extraction import _check_ocr_available
 
         if not _check_ocr_available():
-            click.echo(click.style(
-                "OCR not available. Install Tesseract and run: pip install regkb[ocr]",
-                fg="red",
-            ))
+            click.echo(
+                click.style(
+                    "OCR not available. Install Tesseract and run: pip install regkb[ocr]",
+                    fg="red",
+                )
+            )
             sys.exit(1)
         click.echo(f"Re-extracting text (with forced OCR) from {pdf_path.name}...")
     else:
@@ -644,10 +675,12 @@ def ocr_reextract(doc_id: int, all_docs: bool) -> None:
     from .extraction import _check_ocr_available
 
     if not _check_ocr_available():
-        click.echo(click.style(
-            "OCR not available. Install Tesseract and run: pip install regkb[ocr]",
-            fg="red",
-        ))
+        click.echo(
+            click.style(
+                "OCR not available. Install Tesseract and run: pip install regkb[ocr]",
+                fg="red",
+            )
+        )
         sys.exit(1)
 
     if not doc_id and not all_docs:
@@ -684,17 +717,24 @@ def ocr_reextract(doc_id: int, all_docs: bool) -> None:
             fail_count += 1
 
     click.echo()
-    click.echo(click.style(
-        f"OCR re-extraction complete: {success_count} succeeded, {fail_count} failed",
-        fg="green" if fail_count == 0 else "yellow",
-    ))
+    click.echo(
+        click.style(
+            f"OCR re-extraction complete: {success_count} succeeded, {fail_count} failed",
+            fg="green" if fail_count == 0 else "yellow",
+        )
+    )
 
 
 @cli.command("diff")
 @click.argument("id1", type=int)
 @click.argument("id2", type=int)
-@click.option("-o", "--output", type=click.Path(path_type=Path), default=None,
-              help="Save HTML side-by-side diff to file")
+@click.option(
+    "-o",
+    "--output",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Save HTML side-by-side diff to file",
+)
 @click.option("--stats-only", is_flag=True, help="Show only summary statistics")
 @click.option("--context", type=int, default=3, help="Number of context lines (default: 3)")
 def diff_cmd(id1: int, id2: int, output: Optional[Path], stats_only: bool, context: int) -> None:
@@ -728,11 +768,13 @@ def diff_cmd(id1: int, id2: int, output: Optional[Path], stats_only: bool, conte
     )
 
     if result is None:
-        click.echo(click.style(
-            "Cannot compare: one or both documents have no extracted text. "
-            "Run 'regkb extract <id>' first.",
-            fg="red",
-        ))
+        click.echo(
+            click.style(
+                "Cannot compare: one or both documents have no extracted text. "
+                "Run 'regkb extract <id>' first.",
+                fg="red",
+            )
+        )
         sys.exit(1)
 
     # Always show stats
@@ -824,10 +866,12 @@ def gap_analysis(
     summary = get_gap_summary(results)
     if mandatory_only:
         missing = summary["mandatory_missing"]
-        click.echo(click.style(
-            f"\n{missing} MANDATORY documents missing - prioritize these!",
-            fg="red" if missing > 0 else "green"
-        ))
+        click.echo(
+            click.style(
+                f"\n{missing} MANDATORY documents missing - prioritize these!",
+                fg="red" if missing > 0 else "green",
+            )
+        )
     else:
         coverage = summary["overall_coverage"]
         color = "green" if coverage >= 80 else "yellow" if coverage >= 50 else "red"
@@ -836,10 +880,24 @@ def gap_analysis(
 
 @cli.command("download")
 @click.option("-j", "--jurisdiction", help="Download only this jurisdiction (EU, UK, US, etc.)")
-@click.option("--mandatory-only", is_flag=True, default=True, help="Download only mandatory documents (default)")
-@click.option("--all", "download_all", is_flag=True, help="Download all documents including optional")
-@click.option("--import/--no-import", "do_import", default=True, help="Import downloaded files to KB")
-@click.option("--delay", default=1.5, type=click.FloatRange(0.0, 60.0), help="Delay between downloads (0-60 seconds)")
+@click.option(
+    "--mandatory-only",
+    is_flag=True,
+    default=True,
+    help="Download only mandatory documents (default)",
+)
+@click.option(
+    "--all", "download_all", is_flag=True, help="Download all documents including optional"
+)
+@click.option(
+    "--import/--no-import", "do_import", default=True, help="Import downloaded files to KB"
+)
+@click.option(
+    "--delay",
+    default=1.5,
+    type=click.FloatRange(0.0, 60.0),
+    help="Delay between downloads (0-60 seconds)",
+)
 def download_docs(
     jurisdiction: Optional[str],
     mandatory_only: bool,
@@ -870,7 +928,9 @@ def download_docs(
         click.echo("No documents to download with current filters.")
         return
 
-    click.echo(click.style(f"\nDownloading {len(docs)} documents...\n", fg="bright_white", bold=True))
+    click.echo(
+        click.style(f"\nDownloading {len(docs)} documents...\n", fg="bright_white", bold=True)
+    )
 
     def progress(current, total, message):
         click.echo(f"[{current}/{total}] {message}")
@@ -878,38 +938,40 @@ def download_docs(
     results = downloader.download_batch(docs, progress_callback=progress, delay=delay)
 
     # Summary
-    click.echo(click.style(f"\n{'='*50}", fg="cyan"))
+    click.echo(click.style(f"\n{'=' * 50}", fg="cyan"))
     click.echo(click.style("DOWNLOAD SUMMARY", fg="bright_white", bold=True))
-    click.echo(click.style(f"{'='*50}", fg="cyan"))
+    click.echo(click.style(f"{'=' * 50}", fg="cyan"))
     click.echo(f"  Downloaded: {len(results['success'])}")
     click.echo(f"  Failed:     {len(results['failed'])}")
     click.echo(f"  Skipped:    {len(results['skipped'])} (web pages - manual download)")
 
     # Show failures
-    if results['failed']:
+    if results["failed"]:
         click.echo(click.style("\nFailed downloads:", fg="red"))
-        for f in results['failed'][:10]:
+        for f in results["failed"][:10]:
             click.echo(f"  - {f['title']}: {f['error']}")
 
     # Show skipped
-    if results['skipped']:
+    if results["skipped"]:
         click.echo(click.style("\nSkipped (manual download required):", fg="yellow"))
-        for s in results['skipped'][:10]:
+        for s in results["skipped"][:10]:
             click.echo(f"  - {s['title']}")
             click.echo(f"    {s['url']}")
 
     # Import downloaded files
-    if do_import and results['success']:
+    if do_import and results["success"]:
         click.echo(click.style("\nImporting downloaded documents...", fg="cyan"))
         imported = 0
-        for doc in results['success']:
-            file_path = Path(doc['file_path'])
+        for doc in results["success"]:
+            file_path = Path(doc["file_path"])
             if file_path.exists():
                 metadata = {
-                    'title': doc['title'],
-                    'jurisdiction': doc['jurisdiction'],
-                    'document_type': 'guidance' if 'guidance' in doc.get('category', '') else 'regulation',
-                    'source_url': doc['url'],
+                    "title": doc["title"],
+                    "jurisdiction": doc["jurisdiction"],
+                    "document_type": "guidance"
+                    if "guidance" in doc.get("category", "")
+                    else "regulation",
+                    "source_url": doc["url"],
                 }
                 doc_id = importer.import_file(file_path, metadata)
                 if doc_id:
@@ -987,7 +1049,7 @@ def acquisition_list(
         click.echo(f"  {doc['description']}")
         click.echo(click.style(f"  {doc['url']}", fg="blue"))
 
-    click.echo(f"\n{'='*60}")
+    click.echo(f"\n{'=' * 60}")
     click.echo(f"Total: {len(docs)} documents ({free_count} free, {paid_count} require purchase)")
 
 
@@ -1031,15 +1093,17 @@ def version_check(
     summary = get_version_summary(results)
     outdated = summary["outdated"]
     if outdated > 0:
-        click.echo(click.style(
-            f"\n{outdated} document(s) may need updating - check URLs above",
-            fg="yellow"
-        ))
+        click.echo(
+            click.style(
+                f"\n{outdated} document(s) may need updating - check URLs above", fg="yellow"
+            )
+        )
 
 
 # ============================================================================
 # INTELLIGENCE COMMANDS
 # ============================================================================
+
 
 @cli.group()
 def intel() -> None:
@@ -1048,7 +1112,9 @@ def intel() -> None:
 
 
 @intel.command("fetch")
-@click.option("-d", "--days", default=7, type=click.IntRange(1, 365), help="Days to look back (1-365)")
+@click.option(
+    "-d", "--days", default=7, type=click.IntRange(1, 365), help="Days to look back (1-365)"
+)
 @click.option("--raw", is_flag=True, help="Show raw entries without filtering")
 @click.option("--export", "export_path", type=click.Path(), help="Export to CSV file")
 def intel_fetch(days: int, raw: bool, export_path: Optional[str]) -> None:
@@ -1070,10 +1136,14 @@ def intel_fetch(days: int, raw: bool, export_path: Optional[str]) -> None:
         logger.exception("Newsletter fetch error")
         return
 
-    click.echo(f"      Found {fetch_result.total_entries} entries from {fetch_result.sources_fetched} sources")
+    click.echo(
+        f"      Found {fetch_result.total_entries} entries from {fetch_result.sources_fetched} sources"
+    )
 
     if fetch_result.errors:
-        click.echo(click.style(f"      {len(fetch_result.errors)} errors during fetch", fg="yellow"))
+        click.echo(
+            click.style(f"      {len(fetch_result.errors)} errors during fetch", fg="yellow")
+        )
 
     if not fetch_result.entries:
         click.echo(click.style("No entries found.", fg="yellow"))
@@ -1081,11 +1151,15 @@ def intel_fetch(days: int, raw: bool, export_path: Optional[str]) -> None:
 
     # Filter or show raw
     if raw:
-        click.echo(click.style(f"\n[2/2] Showing all {fetch_result.total_entries} entries (unfiltered)", fg="cyan"))
+        click.echo(
+            click.style(
+                f"\n[2/2] Showing all {fetch_result.total_entries} entries (unfiltered)", fg="cyan"
+            )
+        )
         entries_to_show = fetch_result.entries
         filtered_result = None
     else:
-        click.echo(f"\n[2/2] Filtering by interests...")
+        click.echo("\n[2/2] Filtering by interests...")
         filtered_result = content_filter.filter(fetch_result.entries)
         click.echo(f"      Included: {filtered_result.total_included}")
         click.echo(f"      Excluded: {filtered_result.total_excluded}")
@@ -1121,19 +1195,22 @@ def intel_fetch(days: int, raw: bool, export_path: Optional[str]) -> None:
             _print_intel_entry(entry)
 
     # Summary
-    click.echo(click.style(f"\n{'='*50}", fg="cyan"))
+    click.echo(click.style(f"\n{'=' * 50}", fg="cyan"))
     if filtered_result:
         click.echo(f"Total: {filtered_result.total_included} relevant entries")
         if filtered_result.high_priority:
-            click.echo(click.style(
-                f"Alert: {len(filtered_result.high_priority)} high-priority items!",
-                fg="red"
-            ))
+            click.echo(
+                click.style(
+                    f"Alert: {len(filtered_result.high_priority)} high-priority items!", fg="red"
+                )
+            )
     else:
         click.echo(f"Total: {len(entries_to_show)} entries")
 
 
-def _print_intel_entry(entry, alert_level: Optional[str] = None, keywords: Optional[list] = None) -> None:
+def _print_intel_entry(
+    entry, alert_level: Optional[str] = None, keywords: Optional[list] = None
+) -> None:
     """Print a single intelligence entry."""
     # Alert indicator
     if alert_level == "critical":
@@ -1154,7 +1231,9 @@ def _print_intel_entry(entry, alert_level: Optional[str] = None, keywords: Optio
         click.echo(click.style(f"      Keywords: {kw_str}", fg="green"))
 
 
-def _export_intel_csv(entries, export_path: str, filtered_result: Optional[FilterResult] = None) -> None:
+def _export_intel_csv(
+    entries, export_path: str, filtered_result: Optional[FilterResult] = None
+) -> None:
     """Export intelligence entries to CSV."""
     import csv
     from pathlib import Path
@@ -1168,26 +1247,30 @@ def _export_intel_csv(entries, export_path: str, filtered_result: Optional[Filte
 
         if filtered_result:
             for fe in filtered_result.included:
-                writer.writerow([
-                    fe.entry.date,
-                    fe.entry.agency,
-                    fe.entry.category,
-                    fe.entry.title,
-                    fe.entry.link or "",
-                    f"{fe.relevance_score:.2f}",
-                    "; ".join(fe.matched_keywords),
-                ])
+                writer.writerow(
+                    [
+                        fe.entry.date,
+                        fe.entry.agency,
+                        fe.entry.category,
+                        fe.entry.title,
+                        fe.entry.link or "",
+                        f"{fe.relevance_score:.2f}",
+                        "; ".join(fe.matched_keywords),
+                    ]
+                )
         else:
             for entry in entries:
-                writer.writerow([
-                    entry.date,
-                    entry.agency,
-                    entry.category,
-                    entry.title,
-                    entry.link or "",
-                    "",
-                    "",
-                ])
+                writer.writerow(
+                    [
+                        entry.date,
+                        entry.agency,
+                        entry.category,
+                        entry.title,
+                        entry.link or "",
+                        "",
+                        "",
+                    ]
+                )
 
 
 @intel.command("status")
@@ -1220,7 +1303,9 @@ def intel_status() -> None:
 
 
 @intel.command("sync")
-@click.option("-d", "--days", default=7, type=click.IntRange(1, 365), help="Days to look back (1-365)")
+@click.option(
+    "-d", "--days", default=7, type=click.IntRange(1, 365), help="Days to look back (1-365)"
+)
 @click.option("--export", "export_path", type=click.Path(), help="Export report to HTML file")
 @click.option("--queue-downloads", is_flag=True, help="Queue downloadable items for approval")
 def intel_sync(days: int, export_path: Optional[str], queue_downloads: bool) -> None:
@@ -1241,7 +1326,9 @@ def intel_sync(days: int, export_path: Optional[str], queue_downloads: bool) -> 
         click.echo(click.style(f"Fetch failed: {e}", fg="red"))
         return
 
-    click.echo(f"      Found {fetch_result.total_entries} entries from {fetch_result.sources_fetched} sources")
+    click.echo(
+        f"      Found {fetch_result.total_entries} entries from {fetch_result.sources_fetched} sources"
+    )
 
     if not fetch_result.entries:
         click.echo(click.style("No entries found.", fg="yellow"))
@@ -1268,7 +1355,9 @@ def intel_sync(days: int, export_path: Optional[str], queue_downloads: bool) -> 
     if queue_downloads:
         queued = kb_analyzer.queue_for_approval(analysis.results)
         if queued > 0:
-            click.echo(click.style(f"      Queued {queued} items for download approval", fg="green"))
+            click.echo(
+                click.style(f"      Queued {queued} items for download approval", fg="green")
+            )
 
     # Export report if requested
     if export_path:
@@ -1276,13 +1365,17 @@ def intel_sync(days: int, export_path: Optional[str], queue_downloads: bool) -> 
         click.echo(click.style(f"\nReport exported to: {export_path}", fg="green"))
 
     # Display summary
-    click.echo(click.style(f"\n{'='*50}", fg="cyan"))
+    click.echo(click.style(f"\n{'=' * 50}", fg="cyan"))
     click.echo(click.style("INTELLIGENCE SUMMARY", fg="bright_white", bold=True))
-    click.echo(f"{'='*50}")
+    click.echo(f"{'=' * 50}")
 
     # High priority alerts
     if filtered_result.high_priority:
-        click.echo(click.style(f"\n{len(filtered_result.high_priority)} HIGH PRIORITY ITEMS:", fg="red", bold=True))
+        click.echo(
+            click.style(
+                f"\n{len(filtered_result.high_priority)} HIGH PRIORITY ITEMS:", fg="red", bold=True
+            )
+        )
         for fe in filtered_result.high_priority[:5]:
             alert_icon = "[!!!]" if fe.alert_level == "critical" else "[!!]"
             click.echo(f"  {alert_icon} {fe.entry.title[:60]}...")
@@ -1300,14 +1393,16 @@ def intel_sync(days: int, export_path: Optional[str], queue_downloads: bool) -> 
     for agency, entries in sorted(by_agency.items(), key=lambda x: -len(x[1]))[:5]:
         click.echo(f"  {agency}: {len(entries)} updates")
 
-    click.echo(f"\n{'='*50}")
+    click.echo(f"\n{'=' * 50}")
     click.echo(f"Total relevant updates: {filtered_result.total_included}")
 
     if not export_path:
         click.echo(click.style("\nTip: Use --export report.html to save full report", fg="yellow"))
 
 
-def _export_intel_report(filtered_result: FilterResult, analysis, export_path: str, days: int) -> None:
+def _export_intel_report(
+    filtered_result: FilterResult, analysis, export_path: str, days: int
+) -> None:
     """Export intelligence report to HTML file."""
     from datetime import datetime
     from pathlib import Path
@@ -1340,7 +1435,7 @@ def _export_intel_report(filtered_result: FilterResult, analysis, export_path: s
 </head>
 <body>
     <h1>Regulatory Intelligence Report</h1>
-    <p>Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')} | Period: Last {days} days</p>
+    <p>Generated: {datetime.now().strftime("%Y-%m-%d %H:%M")} | Period: Last {days} days</p>
 
     <div class="summary">
         <strong>Summary:</strong> {filtered_result.total_included} relevant updates found,
@@ -1357,7 +1452,7 @@ def _export_intel_report(filtered_result: FilterResult, analysis, export_path: s
             html += f"""<div class="{alert_class}">
                 <strong>{fe.entry.title}</strong><br>
                 <span class="meta">{fe.entry.agency} | {fe.entry.date} | {fe.entry.category}</span><br>
-                {f'<a href="{fe.entry.link}" target="_blank">View source</a>' if fe.entry.link else ''}
+                {f'<a href="{fe.entry.link}" target="_blank">View source</a>' if fe.entry.link else ""}
             </div>\n"""
 
     # By category
@@ -1367,8 +1462,8 @@ def _export_intel_report(filtered_result: FilterResult, analysis, export_path: s
             html += f"""<div class="entry">
                 <strong>{fe.entry.title}</strong><br>
                 <span class="meta">{fe.entry.agency} | {fe.entry.date}</span><br>
-                {f'<span class="keywords">Keywords: {", ".join(fe.matched_keywords[:5])}</span><br>' if fe.matched_keywords else ''}
-                {f'<a href="{fe.entry.link}" target="_blank">View source</a>' if fe.entry.link else ''}
+                {f'<span class="keywords">Keywords: {", ".join(fe.matched_keywords[:5])}</span><br>' if fe.matched_keywords else ""}
+                {f'<a href="{fe.entry.link}" target="_blank">View source</a>' if fe.entry.link else ""}
             </div>\n"""
 
     html += """
@@ -1410,21 +1505,31 @@ def intel_pending(show_all: bool) -> None:
             "downloaded": "cyan",
             "failed": "red",
         }
-        click.echo(click.style(f"\n{status.upper()} ({len(pending)}):", fg=status_colors.get(status, "white"), bold=True))
+        click.echo(
+            click.style(
+                f"\n{status.upper()} ({len(pending)}):",
+                fg=status_colors.get(status, "white"),
+                bold=True,
+            )
+        )
 
         for item in pending:
             click.echo(f"\n  [{item.id}] {item.title}")
             click.echo(f"      {item.agency} | {item.date} | Score: {item.relevance_score:.2f}")
             if item.keywords:
-                click.echo(click.style(f"      Keywords: {', '.join(item.keywords[:5])}", fg="green"))
+                click.echo(
+                    click.style(f"      Keywords: {', '.join(item.keywords[:5])}", fg="green")
+                )
             click.echo(click.style(f"      {item.url}", fg="blue"))
 
     if total == 0:
         click.echo(click.style("\nNo pending downloads.", fg="green"))
     else:
-        click.echo(f"\n{'='*50}")
+        click.echo(f"\n{'=' * 50}")
         stats = kb_analyzer.get_stats()
-        click.echo(f"Total: {stats.get('pending', 0)} pending, {stats.get('approved', 0)} approved, {stats.get('downloaded', 0)} downloaded")
+        click.echo(
+            f"Total: {stats.get('pending', 0)} pending, {stats.get('approved', 0)} approved, {stats.get('downloaded', 0)} downloaded"
+        )
 
 
 @intel.command("approve")
@@ -1467,7 +1572,12 @@ def intel_reject(ids: tuple) -> None:
 
 
 @intel.command("download")
-@click.option("--delay", default=2.0, type=click.FloatRange(0.0, 60.0), help="Delay between downloads (0-60 seconds)")
+@click.option(
+    "--delay",
+    default=2.0,
+    type=click.FloatRange(0.0, 60.0),
+    help="Delay between downloads (0-60 seconds)",
+)
 def intel_download(delay: float) -> None:
     """Download approved documents and import to KB."""
     import time
@@ -1479,7 +1589,9 @@ def intel_download(delay: float) -> None:
         click.echo("Run: regkb intel sync")
         return
 
-    click.echo(click.style(f"\nDownloading {len(approved)} documents", fg="bright_white", bold=True))
+    click.echo(
+        click.style(f"\nDownloading {len(approved)} documents", fg="bright_white", bold=True)
+    )
     click.echo("=" * 50)
 
     success_count = 0
@@ -1498,7 +1610,7 @@ def intel_download(delay: float) -> None:
                     "document_type": _infer_doc_type(item.category),
                     "source_url": item.url,
                     "description": f"From Index-of-Indexes: {item.agency} - {item.category}",
-                }
+                },
             )
 
             if doc_id:
@@ -1520,7 +1632,7 @@ def intel_download(delay: float) -> None:
             time.sleep(delay)
 
     # Summary
-    click.echo(click.style(f"\n{'='*50}", fg="cyan"))
+    click.echo(click.style(f"\n{'=' * 50}", fg="cyan"))
     click.echo(f"Downloaded: {success_count}")
     click.echo(f"Failed: {fail_count}")
 
@@ -1580,13 +1692,29 @@ def _infer_doc_type(category: str) -> str:
 
 
 @intel.command("summary")
-@click.option("-d", "--days", default=7, type=click.IntRange(1, 365), help="Days to look back (1-365)")
-@click.option("-n", "--limit", default=10, type=click.IntRange(1, 50), help="Max entries to summarize (1-50)")
-@click.option("--style", type=click.Choice(["layperson", "technical", "brief"]), default="layperson", help="Summary style")
+@click.option(
+    "-d", "--days", default=7, type=click.IntRange(1, 365), help="Days to look back (1-365)"
+)
+@click.option(
+    "-n", "--limit", default=10, type=click.IntRange(1, 50), help="Max entries to summarize (1-50)"
+)
+@click.option(
+    "--style",
+    type=click.Choice(["layperson", "technical", "brief"]),
+    default="layperson",
+    help="Summary style",
+)
 @click.option("--high-priority-only", is_flag=True, help="Only summarize high-priority items")
 @click.option("--export", "export_path", type=click.Path(), help="Export summaries to HTML file")
 @click.option("--no-cache", is_flag=True, help="Bypass summary cache")
-def intel_summary(days: int, limit: int, style: str, high_priority_only: bool, export_path: Optional[str], no_cache: bool) -> None:
+def intel_summary(
+    days: int,
+    limit: int,
+    style: str,
+    high_priority_only: bool,
+    export_path: Optional[str],
+    no_cache: bool,
+) -> None:
     """
     Generate LLM-powered summaries of regulatory updates.
 
@@ -1595,13 +1723,18 @@ def intel_summary(days: int, limit: int, style: str, high_priority_only: bool, e
 
     Requires ANTHROPIC_API_KEY environment variable to be set.
     """
-    click.echo(click.style("\nRegulatory Intelligence - Summary Generation", fg="bright_white", bold=True))
+    click.echo(
+        click.style("\nRegulatory Intelligence - Summary Generation", fg="bright_white", bold=True)
+    )
     click.echo("=" * 50)
 
     # Check for API key
     import os
+
     if not os.environ.get("ANTHROPIC_API_KEY"):
-        click.echo(click.style("\nError: ANTHROPIC_API_KEY environment variable not set.", fg="red"))
+        click.echo(
+            click.style("\nError: ANTHROPIC_API_KEY environment variable not set.", fg="red")
+        )
         click.echo("Set it with: set ANTHROPIC_API_KEY=your-api-key")
         click.echo("\nYou can get an API key from: https://console.anthropic.com/")
         return
@@ -1653,9 +1786,9 @@ def intel_summary(days: int, limit: int, style: str, high_priority_only: bool, e
         return
 
     # Display summaries
-    click.echo(click.style(f"\n{'='*50}", fg="cyan"))
+    click.echo(click.style(f"\n{'=' * 50}", fg="cyan"))
     click.echo(click.style("REGULATORY UPDATE SUMMARIES", fg="bright_white", bold=True))
-    click.echo(f"{'='*50}")
+    click.echo(f"{'=' * 50}")
 
     for i, (entry, summary) in enumerate(summaries, 1):
         click.echo(click.style(f"\n[{i}] {entry.entry.title[:70]}", fg="bright_white", bold=True))
@@ -1676,11 +1809,11 @@ def intel_summary(days: int, limit: int, style: str, high_priority_only: bool, e
         if entry.entry.link:
             click.echo(click.style(f"\n    Source: {entry.entry.link}", fg="blue"))
 
-        click.echo(f"\n    {'─'*46}")
+        click.echo(f"\n    {'─' * 46}")
 
     # Cache stats
     stats = intel_summarizer.get_cache_stats()
-    click.echo(f"\n{'='*50}")
+    click.echo(f"\n{'=' * 50}")
     click.echo(f"Summaries generated: {len(summaries)}")
     click.echo(f"Cache: {stats['total']} total cached summaries")
 
@@ -1715,7 +1848,7 @@ def _export_summary_report(summaries, export_path: str, style: str, days: int) -
 </head>
 <body>
     <h1>Regulatory Intelligence Summaries</h1>
-    <p>Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')} | Period: Last {days} days | Style: {style}</p>
+    <p>Generated: {datetime.now().strftime("%Y-%m-%d %H:%M")} | Period: Last {days} days | Style: {style}</p>
     <p><strong>{len(summaries)} updates summarized</strong></p>
 """
 
@@ -1727,20 +1860,20 @@ def _export_summary_report(summaries, export_path: str, style: str, days: int) -
 
         <div class="section what">
             <div class="section-title">What Happened</div>
-            <p>{summary.what_happened or 'Summary not available'}</p>
+            <p>{summary.what_happened or "Summary not available"}</p>
         </div>
 
         <div class="section why">
             <div class="section-title">Why It Matters</div>
-            <p>{summary.why_it_matters or 'See original source'}</p>
+            <p>{summary.why_it_matters or "See original source"}</p>
         </div>
 
         <div class="section action">
             <div class="section-title">Action Needed</div>
-            <p>{summary.action_needed or 'Information only'}</p>
+            <p>{summary.action_needed or "Information only"}</p>
         </div>
 
-        {f'<p><a href="{entry.entry.link}" target="_blank">View original source →</a></p>' if entry.entry.link else ''}
+        {f'<p><a href="{entry.entry.link}" target="_blank">View original source →</a></p>' if entry.entry.link else ""}
     </div>
 """
 
@@ -1770,9 +1903,9 @@ def intel_cache(clear: bool, show_stats: bool) -> None:
         click.echo(click.style("\nSummary Cache Statistics", fg="bright_white", bold=True))
         click.echo("=" * 30)
         click.echo(f"Total cached: {stats['total']}")
-        if stats['by_style']:
+        if stats["by_style"]:
             click.echo("\nBy style:")
-            for style, count in stats['by_style'].items():
+            for style, count in stats["by_style"].items():
                 click.echo(f"  {style}: {count}")
     else:
         stats = intel_summarizer.get_cache_stats()
@@ -1781,11 +1914,23 @@ def intel_cache(clear: bool, show_stats: bool) -> None:
 
 
 @intel.command("email")
-@click.option("-d", "--days", default=7, type=click.IntRange(1, 365), help="Days to look back (1-365)")
-@click.option("--type", "email_type", type=click.Choice(["weekly", "daily", "test"]), default="weekly", help="Email type")
-@click.option("--to", "recipients", multiple=True, help="Override recipients (can specify multiple)")
+@click.option(
+    "-d", "--days", default=7, type=click.IntRange(1, 365), help="Days to look back (1-365)"
+)
+@click.option(
+    "--type",
+    "email_type",
+    type=click.Choice(["weekly", "daily", "test"]),
+    default="weekly",
+    help="Email type",
+)
+@click.option(
+    "--to", "recipients", multiple=True, help="Override recipients (can specify multiple)"
+)
 @click.option("--dry-run", is_flag=True, help="Generate email but don't send (saves to file)")
-@click.option("-n", "--limit", default=20, type=click.IntRange(1, 50), help="Max entries to include")
+@click.option(
+    "-n", "--limit", default=20, type=click.IntRange(1, 50), help="Max entries to include"
+)
 def intel_email(days: int, email_type: str, recipients: tuple, dry_run: bool, limit: int) -> None:
     """
     Send regulatory intelligence email digest.
@@ -1796,7 +1941,11 @@ def intel_email(days: int, email_type: str, recipients: tuple, dry_run: bool, li
     """
     from datetime import datetime, timedelta
 
-    click.echo(click.style(f"\nRegulatory Intelligence - {email_type.title()} Email", fg="bright_white", bold=True))
+    click.echo(
+        click.style(
+            f"\nRegulatory Intelligence - {email_type.title()} Email", fg="bright_white", bold=True
+        )
+    )
     click.echo("=" * 50)
 
     # Handle test email separately
@@ -1816,12 +1965,15 @@ def intel_email(days: int, email_type: str, recipients: tuple, dry_run: bool, li
 
     # Check for SMTP credentials
     import os
+
     if not dry_run and (not os.environ.get("SMTP_USERNAME") or not os.environ.get("SMTP_PASSWORD")):
         click.echo(click.style("\nError: SMTP credentials not set.", fg="red"))
         click.echo("Set environment variables:")
         click.echo("  set SMTP_USERNAME=your-email@gmail.com")
         click.echo("  set SMTP_PASSWORD=your-app-password")
-        click.echo("\nFor Gmail, use an App Password: https://support.google.com/accounts/answer/185833")
+        click.echo(
+            "\nFor Gmail, use an App Password: https://support.google.com/accounts/answer/185833"
+        )
         click.echo("\nOr use --dry-run to generate email without sending.")
         return
 
@@ -1857,7 +2009,9 @@ def intel_email(days: int, email_type: str, recipients: tuple, dry_run: bool, li
     # Step 3: Generate summaries (optional but recommended)
     click.echo("\n[3/4] Generating summaries...")
 
-    entries_to_process = filtered_result.high_priority if email_type == "daily" else filtered_result.included[:limit]
+    entries_to_process = (
+        filtered_result.high_priority if email_type == "daily" else filtered_result.included[:limit]
+    )
     entries_with_summaries = []
 
     # Check if we have API key for summaries
@@ -1886,8 +2040,7 @@ def intel_email(days: int, email_type: str, recipients: tuple, dry_run: bool, li
 
     # Prepare high priority entries
     high_priority_with_summaries = [
-        (e, s) for e, s in entries_with_summaries
-        if e in filtered_result.high_priority
+        (e, s) for e, s in entries_with_summaries if e in filtered_result.high_priority
     ]
 
     # Override recipients if specified
@@ -1900,10 +2053,11 @@ def intel_email(days: int, email_type: str, recipients: tuple, dry_run: bool, li
         if email_type == "weekly":
             # Generate HTML manually for preview
             from .intelligence.emailer import WEEKLY_TEMPLATE
+
             alerts_section = intel_emailer._generate_alerts_section(high_priority_with_summaries)
             summaries_section = intel_emailer._generate_summaries_section(entries_with_summaries)
 
-            categories = set(e.entry.category for e, _ in entries_with_summaries if e.entry.category)
+            categories = {e.entry.category for e, _ in entries_with_summaries if e.entry.category}
 
             html = WEEKLY_TEMPLATE.format(
                 date_range=date_range,
@@ -1915,9 +2069,10 @@ def intel_email(days: int, email_type: str, recipients: tuple, dry_run: bool, li
             )
         else:
             from .intelligence.emailer import DAILY_ALERT_TEMPLATE
+
             alerts_content = ""
             for entry, summary in high_priority_with_summaries:
-                alerts_content += f'''
+                alerts_content += f"""
                 <div class="alert">
                     <h2>{entry.entry.title}</h2>
                     <div class="meta">{entry.entry.agency} | {entry.entry.category}</div>
@@ -1925,7 +2080,7 @@ def intel_email(days: int, email_type: str, recipients: tuple, dry_run: bool, li
                         {f"<p><strong>What:</strong> {summary.what_happened}</p>" if summary and summary.what_happened else ""}
                     </div>
                 </div>
-                '''
+                """
             html = DAILY_ALERT_TEMPLATE.format(
                 date=datetime.now().strftime("%B %d, %Y"),
                 alerts_content=alerts_content,
@@ -1953,9 +2108,9 @@ def intel_email(days: int, email_type: str, recipients: tuple, dry_run: bool, li
         )
 
     # Report result
-    click.echo(click.style(f"\n{'='*50}", fg="cyan"))
+    click.echo(click.style(f"\n{'=' * 50}", fg="cyan"))
     if result.success:
-        click.echo(click.style(f"Email sent successfully!", fg="green"))
+        click.echo(click.style("Email sent successfully!", fg="green"))
         click.echo(f"Recipients: {result.recipients_sent}")
     else:
         click.echo(click.style(f"Email failed: {result.error}", fg="red"))
@@ -1985,7 +2140,9 @@ def intel_run(days: int, email: bool, export_path: Optional[str]) -> None:
         click.echo(click.style(f"Fetch failed: {e}", fg="red"))
         return
 
-    click.echo(f"      Found {fetch_result.total_entries} entries from {fetch_result.sources_fetched} sources")
+    click.echo(
+        f"      Found {fetch_result.total_entries} entries from {fetch_result.sources_fetched} sources"
+    )
 
     if not fetch_result.entries:
         click.echo(click.style("No entries found.", fg="yellow"))
@@ -2011,6 +2168,7 @@ def intel_run(days: int, email: bool, export_path: Optional[str]) -> None:
     # Step 4: Generate summaries (if API key available)
     click.echo("\n[4/5] Generating summaries...")
     import os
+
     entries_with_summaries = []
 
     if os.environ.get("ANTHROPIC_API_KEY"):
@@ -2043,8 +2201,7 @@ def intel_run(days: int, email: bool, export_path: Optional[str]) -> None:
             date_range = f"{start_date.strftime('%b %d')} - {end_date.strftime('%b %d, %Y')}"
 
             high_priority_with_summaries = [
-                (e, s) for e, s in entries_with_summaries
-                if e in filtered_result.high_priority
+                (e, s) for e, s in entries_with_summaries if e in filtered_result.high_priority
             ]
 
             result = intel_emailer.send_weekly_digest(
@@ -2054,12 +2211,16 @@ def intel_run(days: int, email: bool, export_path: Optional[str]) -> None:
             )
 
             if result.success:
-                click.echo(click.style(f"      Email sent to {result.recipients_sent} recipients", fg="green"))
+                click.echo(
+                    click.style(
+                        f"      Email sent to {result.recipients_sent} recipients", fg="green"
+                    )
+                )
             else:
                 click.echo(click.style(f"      Email failed: {result.error}", fg="red"))
 
     # Summary
-    click.echo(click.style(f"\n{'='*50}", fg="cyan"))
+    click.echo(click.style(f"\n{'=' * 50}", fg="cyan"))
     click.echo(click.style("COMPLETE", fg="green", bold=True))
     click.echo(f"  Processed: {filtered_result.total_included} relevant updates")
     click.echo(f"  Alerts: {len(filtered_result.high_priority)} high-priority items")
@@ -2068,22 +2229,22 @@ def intel_run(days: int, email: bool, export_path: Optional[str]) -> None:
 
 @intel.command("setup")
 @click.option(
-    "--type", "-t",
+    "--type",
+    "-t",
     "setup_type",
     type=click.Choice(["batch", "taskxml", "imap", "all"]),
     default="batch",
-    help="Type of setup files to generate"
+    help="Type of setup files to generate",
 )
 @click.option(
-    "--schedule", "-s",
+    "--schedule",
+    "-s",
     type=click.Choice(["weekly", "daily", "monthly"]),
     default="weekly",
-    help="Schedule type for Task Scheduler XML"
+    help="Schedule type for Task Scheduler XML",
 )
 @click.option(
-    "--output", "-o",
-    type=click.Path(path_type=Path),
-    help="Output directory for generated files"
+    "--output", "-o", type=click.Path(path_type=Path), help="Output directory for generated files"
 )
 def intel_setup(setup_type: str, schedule: str, output: Optional[Path]) -> None:
     """
@@ -2154,7 +2315,9 @@ def intel_setup(setup_type: str, schedule: str, output: Optional[Path]) -> None:
         click.echo("  4. Run run_intel_imap.bat to start polling for digest replies")
     if setup_type in ("taskxml", "all"):
         click.echo("  5. Import Task Scheduler XML:")
-        click.echo(f"     schtasks /create /xml \"{output_dir / f'task_intel_{schedule}.xml'}\" /tn \"RegulatoryKB_Intel\"")
+        click.echo(
+            f'     schtasks /create /xml "{output_dir / f"task_intel_{schedule}.xml"}" /tn "RegulatoryKB_Intel"'
+        )
 
 
 @intel.command("schedule-status")
@@ -2232,7 +2395,7 @@ def intel_poll(once: bool, no_confirm: bool) -> None:
         click.echo("\n(Or use SMTP_USERNAME/SMTP_PASSWORD - same credentials work for Gmail)")
         return
 
-    click.echo(f"\nPolling for replies...")
+    click.echo("\nPolling for replies...")
 
     result = reply_handler.process_all_pending(mark_read=True)
 
@@ -2241,9 +2404,9 @@ def intel_poll(once: bool, no_confirm: bool) -> None:
         return
 
     # Summary
-    click.echo(click.style(f"\n{'='*50}", fg="cyan"))
+    click.echo(click.style(f"\n{'=' * 50}", fg="cyan"))
     click.echo(click.style("PROCESSING COMPLETE", fg="bright_white", bold=True))
-    click.echo(f"{'='*50}")
+    click.echo(f"{'=' * 50}")
 
     if result.successful:
         click.echo(click.style(f"\nSUCCESSFUL ({len(result.successful)}):", fg="green", bold=True))
@@ -2253,7 +2416,9 @@ def intel_poll(once: bool, no_confirm: bool) -> None:
             click.echo(f"  [{seq}] {download.entry.title[:50]}...{kb_id}")
 
     if result.needs_manual:
-        click.echo(click.style(f"\nNEEDS MANUAL URL ({len(result.needs_manual)}):", fg="yellow", bold=True))
+        click.echo(
+            click.style(f"\nNEEDS MANUAL URL ({len(result.needs_manual)}):", fg="yellow", bold=True)
+        )
         for download in result.needs_manual:
             seq = download.entry.entry_id.split("-")[-1]
             click.echo(f"  [{seq}] {download.entry.title[:50]}...")
@@ -2284,10 +2449,14 @@ def intel_poll(once: bool, no_confirm: bool) -> None:
             if email_result.success:
                 click.echo(click.style("Confirmation email sent.", fg="green"))
             else:
-                click.echo(click.style(f"Failed to send confirmation: {email_result.error}", fg="red"))
+                click.echo(
+                    click.style(f"Failed to send confirmation: {email_result.error}", fg="red")
+                )
 
-    click.echo(f"\n{'='*50}")
-    click.echo(f"Total: {len(result.successful)} successful, {len(result.failed)} failed, {len(result.needs_manual)} need manual URL")
+    click.echo(f"\n{'=' * 50}")
+    click.echo(
+        f"Total: {len(result.successful)} successful, {len(result.failed)} failed, {len(result.needs_manual)} need manual URL"
+    )
 
 
 @intel.command("resolve-url")
@@ -2305,8 +2474,10 @@ def intel_resolve_url(url: str) -> None:
 
     result = url_resolver.resolve(url)
 
-    click.echo(f"\nResolution Result:")
-    click.echo(f"  Success:       {click.style('Yes', fg='green') if result.success else click.style('No', fg='red')}")
+    click.echo("\nResolution Result:")
+    click.echo(
+        f"  Success:       {click.style('Yes', fg='green') if result.success else click.style('No', fg='red')}"
+    )
     click.echo(f"  Resolved URL:  {result.resolved_url or 'N/A'}")
     click.echo(f"  Domain:        {result.domain or 'N/A'}")
     click.echo(f"  Document Type: {result.document_type or 'unknown'}")
@@ -2372,7 +2543,7 @@ def intel_download_entry(ids: tuple, url: Optional[str]) -> None:
 
         if resolve_result.needs_manual and not url:
             click.echo(click.style("  URL needs manual resolution", fg="yellow"))
-            click.echo(f"  Use --url to provide direct document URL")
+            click.echo("  Use --url to provide direct document URL")
             digest_tracker.update_entry_status(entry.entry_id, "manual_needed")
             fail_count += 1
             continue
@@ -2416,7 +2587,7 @@ def intel_download_entry(ids: tuple, url: Optional[str]) -> None:
             )
             fail_count += 1
 
-    click.echo(click.style(f"\n{'='*50}", fg="cyan"))
+    click.echo(click.style(f"\n{'=' * 50}", fg="cyan"))
     click.echo(f"Downloaded: {success_count}, Failed: {fail_count}")
 
     if success_count > 0:
@@ -2469,10 +2640,10 @@ def intel_digest_entries(date: Optional[str], limit: int) -> None:
 
     # Stats
     stats = digest_tracker.get_stats()
-    click.echo(click.style(f"\n{'='*50}", fg="cyan"))
+    click.echo(click.style(f"\n{'=' * 50}", fg="cyan"))
     click.echo(f"Total digests: {stats['total_digests']}")
     click.echo(f"Total entries tracked: {stats['total_entries']}")
-    if stats['last_digest_date']:
+    if stats["last_digest_date"]:
         click.echo(f"Last digest: {stats['last_digest_date']}")
 
 

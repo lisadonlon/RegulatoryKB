@@ -13,7 +13,7 @@ import ssl
 from dataclasses import dataclass, field
 from datetime import datetime
 from email.header import decode_header
-from typing import List, Optional, Tuple
+from typing import Optional
 
 from ..config import config
 from .digest_tracker import DigestEntry, digest_tracker
@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 class DownloadRequest:
     """A parsed download request from an email reply."""
 
-    entry_ids: List[str]
+    entry_ids: list[str]
     requester_email: str
     subject: str
     received_at: datetime
@@ -52,10 +52,10 @@ class ProcessingResult:
     """Overall result of processing download requests."""
 
     requests_processed: int = 0
-    successful: List[ProcessedDownload] = field(default_factory=list)
-    failed: List[ProcessedDownload] = field(default_factory=list)
-    needs_manual: List[ProcessedDownload] = field(default_factory=list)
-    errors: List[str] = field(default_factory=list)
+    successful: list[ProcessedDownload] = field(default_factory=list)
+    failed: list[ProcessedDownload] = field(default_factory=list)
+    needs_manual: list[ProcessedDownload] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
 
 
 class IMAPConfig:
@@ -102,12 +102,11 @@ class ReplyHandler:
         self._connection: Optional[imaplib.IMAP4_SSL] = None
 
         # Get allowed senders (recipients list from config)
-        self.allowed_senders = set(
-            email.lower() for email in
-            config.get("intelligence.email.recipients", [])
-        )
+        self.allowed_senders = {
+            email.lower() for email in config.get("intelligence.email.recipients", [])
+        }
 
-    def _connect(self) -> Tuple[bool, Optional[str]]:
+    def _connect(self) -> tuple[bool, Optional[str]]:
         """
         Connect to the IMAP server.
 
@@ -187,7 +186,7 @@ class ReplyHandler:
 
         return body
 
-    def _parse_entry_ids(self, body: str) -> List[str]:
+    def _parse_entry_ids(self, body: str) -> list[str]:
         """
         Parse entry IDs from email body.
 
@@ -253,7 +252,7 @@ class ReplyHandler:
 
         return email_addr in self.allowed_senders
 
-    def poll_for_replies(self, mark_read: bool = True) -> List[DownloadRequest]:
+    def poll_for_replies(self, mark_read: bool = True) -> list[DownloadRequest]:
         """
         Poll IMAP for digest reply emails.
 
@@ -332,8 +331,7 @@ class ReplyHandler:
                         requests.append(request)
 
                         logger.info(
-                            f"Found download request from {from_addr}: "
-                            f"{len(entry_ids)} entries"
+                            f"Found download request from {from_addr}: {len(entry_ids)} entries"
                         )
 
                         # Mark as read
@@ -353,7 +351,7 @@ class ReplyHandler:
 
         return requests
 
-    def process_request(self, request: DownloadRequest) -> List[ProcessedDownload]:
+    def process_request(self, request: DownloadRequest) -> list[ProcessedDownload]:
         """
         Process a download request.
 
@@ -375,12 +373,14 @@ class ReplyHandler:
         for entry in entries:
             # Skip already downloaded entries
             if entry.download_status == "downloaded":
-                results.append(ProcessedDownload(
-                    entry=entry,
-                    success=True,
-                    kb_doc_id=entry.kb_doc_id,
-                    resolved_url=entry.resolved_url,
-                ))
+                results.append(
+                    ProcessedDownload(
+                        entry=entry,
+                        success=True,
+                        kb_doc_id=entry.kb_doc_id,
+                        resolved_url=entry.resolved_url,
+                    )
+                )
                 continue
 
             # Resolve URL if needed
@@ -395,12 +395,14 @@ class ReplyHandler:
                         "manual_needed",
                         error_message="URL could not be resolved automatically",
                     )
-                    results.append(ProcessedDownload(
-                        entry=entry,
-                        success=False,
-                        needs_manual_url=True,
-                        error="URL needs manual resolution",
-                    ))
+                    results.append(
+                        ProcessedDownload(
+                            entry=entry,
+                            success=False,
+                            needs_manual_url=True,
+                            error="URL needs manual resolution",
+                        )
+                    )
                     continue
 
                 if resolve_result.is_paid:
@@ -409,11 +411,13 @@ class ReplyHandler:
                         "failed",
                         error_message=f"Paid domain: {resolve_result.domain}",
                     )
-                    results.append(ProcessedDownload(
-                        entry=entry,
-                        success=False,
-                        error=f"Paid domain ({resolve_result.domain})",
-                    ))
+                    results.append(
+                        ProcessedDownload(
+                            entry=entry,
+                            success=False,
+                            error=f"Paid domain ({resolve_result.domain})",
+                        )
+                    )
                     continue
 
                 if resolve_result.success and resolve_result.resolved_url:
@@ -425,11 +429,13 @@ class ReplyHandler:
                     "failed",
                     error_message="No URL available",
                 )
-                results.append(ProcessedDownload(
-                    entry=entry,
-                    success=False,
-                    error="No URL available",
-                ))
+                results.append(
+                    ProcessedDownload(
+                        entry=entry,
+                        success=False,
+                        error="No URL available",
+                    )
+                )
                 continue
 
             # Attempt download
@@ -456,14 +462,16 @@ class ReplyHandler:
                         kb_doc_id=doc_id,
                         resolved_url=url,
                     )
-                    results.append(ProcessedDownload(
-                        entry=entry,
-                        success=True,
-                        kb_doc_id=doc_id,
-                        resolved_url=url,
-                        version_diff=version_diff,
-                        content_warning=content_warning,
-                    ))
+                    results.append(
+                        ProcessedDownload(
+                            entry=entry,
+                            success=True,
+                            kb_doc_id=doc_id,
+                            resolved_url=url,
+                            version_diff=version_diff,
+                            content_warning=content_warning,
+                        )
+                    )
                     logger.info(f"Downloaded entry {entry.entry_id} -> KB ID {doc_id}")
                 else:
                     digest_tracker.update_entry_status(
@@ -471,11 +479,13 @@ class ReplyHandler:
                         "failed",
                         error_message="Import returned no ID (duplicate or invalid)",
                     )
-                    results.append(ProcessedDownload(
-                        entry=entry,
-                        success=False,
-                        error="Import failed (duplicate or invalid file)",
-                    ))
+                    results.append(
+                        ProcessedDownload(
+                            entry=entry,
+                            success=False,
+                            error="Import failed (duplicate or invalid file)",
+                        )
+                    )
 
             except Exception as e:
                 error_msg = str(e)
@@ -484,11 +494,13 @@ class ReplyHandler:
                     "failed",
                     error_message=error_msg,
                 )
-                results.append(ProcessedDownload(
-                    entry=entry,
-                    success=False,
-                    error=error_msg,
-                ))
+                results.append(
+                    ProcessedDownload(
+                        entry=entry,
+                        success=False,
+                        error=error_msg,
+                    )
+                )
                 logger.error(f"Download failed for {entry.entry_id}: {e}")
 
         return results

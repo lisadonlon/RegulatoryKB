@@ -10,7 +10,7 @@ import re
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 from .config import config
 from .database import db
@@ -34,7 +34,7 @@ class VersionDiffResult:
     auto_superseded: bool = True
 
 
-def _extract_title_terms(title: str) -> List[str]:
+def _extract_title_terms(title: str) -> list[str]:
     """
     Extract key terms from a document title for content validation.
 
@@ -49,14 +49,14 @@ def _extract_title_terms(title: str) -> List[str]:
 
     # Regulatory identifiers (MDR, IVDR, MDCG, CFR, etc.)
     id_patterns = [
-        r'\b(mdr)\b',
-        r'\b(ivdr)\b',
-        r'\b(mdcg)\b',
-        r'\b(cfr)\b',
-        r'\b(iso)\b',
-        r'\b(iec)\b',
-        r'\b(imdrf)\b',
-        r'\b(samd)\b',
+        r"\b(mdr)\b",
+        r"\b(ivdr)\b",
+        r"\b(mdcg)\b",
+        r"\b(cfr)\b",
+        r"\b(iso)\b",
+        r"\b(iec)\b",
+        r"\b(imdrf)\b",
+        r"\b(samd)\b",
     ]
     for pattern in id_patterns:
         if re.search(pattern, title_lower):
@@ -64,23 +64,23 @@ def _extract_title_terms(title: str) -> List[str]:
 
     # Document numbers like "2017/745", "13485", "62304", "14971"
     number_patterns = [
-        r'(\d{4}/\d{3,4})',       # EU regulation numbers: 2017/745
-        r'\b(\d{4,5})\b',         # Standard numbers: 13485, 62304
-        r'(\d{4}-\d{1,4})',       # MDCG style: 2019-11, 2023-4
+        r"(\d{4}/\d{3,4})",  # EU regulation numbers: 2017/745
+        r"\b(\d{4,5})\b",  # Standard numbers: 13485, 62304
+        r"(\d{4}-\d{1,4})",  # MDCG style: 2019-11, 2023-4
     ]
     for pattern in number_patterns:
         matches = re.findall(pattern, title)
         for m in matches:
             # Skip pure years (4-digit numbers between 1990-2030)
-            if re.match(r'^\d{4}$', m) and 1990 <= int(m) <= 2030:
+            if re.match(r"^\d{4}$", m) and 1990 <= int(m) <= 2030:
                 continue
             terms.append(m.lower())
 
     # Jurisdiction terms
     jurisdiction_patterns = [
-        r'\b(fda)\b',
-        r'\b(eu|european)\b',
-        r'\b(uk)\b',
+        r"\b(fda)\b",
+        r"\b(eu|european)\b",
+        r"\b(uk)\b",
     ]
     for pattern in jurisdiction_patterns:
         match = re.search(pattern, title_lower)

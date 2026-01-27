@@ -11,7 +11,7 @@ import sqlite3
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 from ..config import config
 from .filter import FilteredEntry
@@ -123,7 +123,7 @@ class DigestTracker:
         """
         return f"{digest_date.strftime('%Y-%m%d')}-{sequence_number:02d}"
 
-    def parse_entry_id(self, entry_id: str) -> Tuple[Optional[datetime], Optional[int]]:
+    def parse_entry_id(self, entry_id: str) -> tuple[Optional[datetime], Optional[int]]:
         """
         Parse an entry ID into its components.
 
@@ -158,10 +158,10 @@ class DigestTracker:
 
     def record_digest(
         self,
-        entries: List[FilteredEntry],
+        entries: list[FilteredEntry],
         digest_date: Optional[datetime] = None,
         message_id: Optional[str] = None,
-    ) -> List[DigestEntry]:
+    ) -> list[DigestEntry]:
         """
         Record a sent digest and its entries.
 
@@ -252,9 +252,9 @@ class DigestTracker:
 
     def lookup_entries(
         self,
-        entry_ids: List[str],
+        entry_ids: list[str],
         digest_date: Optional[datetime] = None,
-    ) -> List[DigestEntry]:
+    ) -> list[DigestEntry]:
         """
         Look up entries by their IDs.
 
@@ -366,7 +366,7 @@ class DigestTracker:
         self,
         digest_date: Optional[str] = None,
         limit: int = 50,
-    ) -> List[DigestEntry]:
+    ) -> list[DigestEntry]:
         """
         Get recent digest entries.
 
@@ -421,7 +421,7 @@ class DigestTracker:
                 for row in cursor.fetchall()
             ]
 
-    def get_stats(self) -> Dict:
+    def get_stats(self) -> dict:
         """Get digest tracking statistics."""
         with sqlite3.connect(self.db_path) as conn:
             stats = {}
@@ -441,9 +441,7 @@ class DigestTracker:
             )
             stats["by_status"] = {row[0]: row[1] for row in cursor.fetchall()}
 
-            cursor = conn.execute(
-                "SELECT digest_date FROM digests ORDER BY sent_at DESC LIMIT 1"
-            )
+            cursor = conn.execute("SELECT digest_date FROM digests ORDER BY sent_at DESC LIMIT 1")
             row = cursor.fetchone()
             stats["last_digest_date"] = row[0] if row else None
 

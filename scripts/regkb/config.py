@@ -6,7 +6,7 @@ Handles loading and accessing configuration from YAML files and environment vari
 
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 import yaml
 
@@ -15,7 +15,7 @@ class Config:
     """Configuration manager for the Regulatory Knowledge Base system."""
 
     # Default configuration values
-    DEFAULTS: Dict[str, Any] = {
+    DEFAULTS: dict[str, Any] = {
         "paths": {
             "base_dir": None,  # Set dynamically
             "archive": "archive",
@@ -76,7 +76,7 @@ class Config:
     }
 
     _instance: Optional["Config"] = None
-    _config: Dict[str, Any] = {}
+    _config: dict[str, Any] = {}
     _base_dir: Optional[Path] = None
 
     def __new__(cls) -> "Config":
@@ -111,17 +111,21 @@ class Config:
         """Load configuration from YAML file if it exists."""
         config_path = self._base_dir / "config" / "config.yaml"
         if config_path.exists():
-            with open(config_path, "r", encoding="utf-8") as f:
+            with open(config_path, encoding="utf-8") as f:
                 file_config = yaml.safe_load(f) or {}
                 self._merge_config(file_config)
 
         # Set the base_dir in paths
         self._config["paths"]["base_dir"] = str(self._base_dir)
 
-    def _merge_config(self, new_config: Dict[str, Any]) -> None:
+    def _merge_config(self, new_config: dict[str, Any]) -> None:
         """Deep merge new configuration into existing configuration."""
         for key, value in new_config.items():
-            if key in self._config and isinstance(self._config[key], dict) and isinstance(value, dict):
+            if (
+                key in self._config
+                and isinstance(self._config[key], dict)
+                and isinstance(value, dict)
+            ):
                 self._config[key].update(value)
             else:
                 self._config[key] = value
@@ -167,12 +171,12 @@ class Config:
         return self._base_dir / self._config["paths"].get("diffs", "reports/diffs")
 
     @property
-    def document_types(self) -> List[str]:
+    def document_types(self) -> list[str]:
         """Get the list of valid document types."""
         return self._config["document_types"]
 
     @property
-    def jurisdictions(self) -> List[str]:
+    def jurisdictions(self) -> list[str]:
         """Get the list of valid jurisdictions."""
         return self._config["jurisdictions"]
 
@@ -195,10 +199,17 @@ class Config:
 
         # Find closest match for suggestion
         from difflib import get_close_matches
+
         matches = get_close_matches(doc_type.lower(), valid_types, n=1, cutoff=0.6)
         if matches:
-            return False, f"Invalid document type '{doc_type}'. Did you mean '{matches[0]}'? Valid types: {', '.join(self.document_types)}"
-        return False, f"Invalid document type '{doc_type}'. Valid types: {', '.join(self.document_types)}"
+            return (
+                False,
+                f"Invalid document type '{doc_type}'. Did you mean '{matches[0]}'? Valid types: {', '.join(self.document_types)}",
+            )
+        return (
+            False,
+            f"Invalid document type '{doc_type}'. Valid types: {', '.join(self.document_types)}",
+        )
 
     def validate_jurisdiction(self, jurisdiction: str) -> tuple[bool, str]:
         """
@@ -219,10 +230,17 @@ class Config:
 
         # Find closest match for suggestion
         from difflib import get_close_matches
+
         matches = get_close_matches(jurisdiction.lower(), valid_jurisdictions, n=1, cutoff=0.6)
         if matches:
-            return False, f"Invalid jurisdiction '{jurisdiction}'. Did you mean '{matches[0]}'? Valid jurisdictions: {', '.join(self.jurisdictions)}"
-        return False, f"Invalid jurisdiction '{jurisdiction}'. Valid jurisdictions: {', '.join(self.jurisdictions)}"
+            return (
+                False,
+                f"Invalid jurisdiction '{jurisdiction}'. Did you mean '{matches[0]}'? Valid jurisdictions: {', '.join(self.jurisdictions)}",
+            )
+        return (
+            False,
+            f"Invalid jurisdiction '{jurisdiction}'. Valid jurisdictions: {', '.join(self.jurisdictions)}",
+        )
 
     def normalize_document_type(self, doc_type: str) -> str:
         """

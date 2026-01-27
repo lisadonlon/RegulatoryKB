@@ -7,9 +7,8 @@ with summary statistics and HTML report generation.
 
 import difflib
 import logging
-from dataclasses import dataclass, field
-from pathlib import Path
-from typing import List, Optional
+from dataclasses import dataclass
+from typing import Optional
 
 from .config import config
 
@@ -115,7 +114,7 @@ def compare_documents(
     )
 
 
-def compute_diff_stats(lines1: List[str], lines2: List[str]) -> DiffStats:
+def compute_diff_stats(lines1: list[str], lines2: list[str]) -> DiffStats:
     """
     Compute diff statistics between two sets of lines.
 
@@ -146,8 +145,8 @@ def compute_diff_stats(lines1: List[str], lines2: List[str]) -> DiffStats:
 
 
 def generate_unified_diff(
-    lines1: List[str],
-    lines2: List[str],
+    lines1: list[str],
+    lines2: list[str],
     label1: str,
     label2: str,
     context_lines: int = 3,
@@ -176,8 +175,8 @@ def generate_unified_diff(
 
 
 def generate_html_diff(
-    lines1: List[str],
-    lines2: List[str],
+    lines1: list[str],
+    lines2: list[str],
     label1: str,
     label2: str,
     context_lines: int = 3,

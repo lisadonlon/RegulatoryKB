@@ -15,35 +15,13 @@ This module provides:
 __version__ = "1.0.0"
 
 # Fetcher - Newsletter data retrieval
-from .fetcher import (
-    NewsletterEntry,
-    FetchResult,
-    NewsletterFetcher,
-    fetcher,
-)
-
-# Filter - Content filtering and relevance scoring
-from .filter import (
-    FilteredEntry,
-    FilterResult,
-    ContentFilter,
-    content_filter,
-)
-
 # Analyzer - KB integration and download queue
 from .analyzer import (
     AnalysisResult,
     AnalysisSummary,
-    PendingDownload,
     KBAnalyzer,
+    PendingDownload,
     analyzer,
-)
-
-# Summarizer - LLM-powered summaries
-from .summarizer import (
-    Summary,
-    Summarizer,
-    summarizer,
 )
 
 # Emailer - Email delivery
@@ -51,13 +29,34 @@ from .emailer import (
     Emailer,
     emailer,
 )
+from .fetcher import (
+    FetchResult,
+    NewsletterEntry,
+    NewsletterFetcher,
+    fetcher,
+)
+
+# Filter - Content filtering and relevance scoring
+from .filter import (
+    ContentFilter,
+    FilteredEntry,
+    FilterResult,
+    content_filter,
+)
 
 # Scheduler - Automated execution support
 from .scheduler import (
     SchedulerState,
-    scheduler_state,
-    generate_windows_task_xml,
     generate_batch_script,
+    generate_windows_task_xml,
+    scheduler_state,
+)
+
+# Summarizer - LLM-powered summaries
+from .summarizer import (
+    Summarizer,
+    Summary,
+    summarizer,
 )
 
 __all__ = [

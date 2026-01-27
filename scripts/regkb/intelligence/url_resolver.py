@@ -8,7 +8,7 @@ to the actual document URLs they reference.
 import logging
 import re
 from dataclasses import dataclass
-from typing import List, Optional, Set, Tuple
+from typing import Optional
 from urllib.parse import urlparse
 
 import requests
@@ -75,7 +75,7 @@ class ResolveResult:
     is_paid: bool = False
     needs_manual: bool = False
     error: Optional[str] = None
-    all_links_found: List[str] = None
+    all_links_found: list[str] = None
 
     def __post_init__(self):
         if self.all_links_found is None:
@@ -85,7 +85,7 @@ class ResolveResult:
 class URLResolver:
     """Resolves social media URLs to actual document URLs."""
 
-    def __init__(self, trusted_domains: Optional[List[str]] = None) -> None:
+    def __init__(self, trusted_domains: Optional[list[str]] = None) -> None:
         """
         Initialize the URL resolver.
 
@@ -99,11 +99,13 @@ class URLResolver:
         self.trusted_domains.update(config_domains)
 
         self.session = requests.Session()
-        self.session.headers.update({
-            "User-Agent": USER_AGENT,
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.5",
-        })
+        self.session.headers.update(
+            {
+                "User-Agent": USER_AGENT,
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.5",
+            }
+        )
 
     def _get_domain(self, url: str) -> Optional[str]:
         """Extract the domain from a URL."""
@@ -169,7 +171,7 @@ class URLResolver:
 
         return "unknown"
 
-    def _extract_links_from_html(self, html: str, base_url: str) -> List[str]:
+    def _extract_links_from_html(self, html: str, base_url: str) -> list[str]:
         """Extract all links from HTML content."""
         links = []
 
@@ -186,7 +188,7 @@ class URLResolver:
 
         return links
 
-    def _find_regulatory_links(self, links: List[str]) -> List[str]:
+    def _find_regulatory_links(self, links: list[str]) -> list[str]:
         """Filter links to only regulatory domains."""
         regulatory = []
         for link in links:
@@ -194,7 +196,7 @@ class URLResolver:
                 regulatory.append(link)
         return regulatory
 
-    def _resolve_redirect(self, url: str) -> Tuple[bool, str, Optional[str]]:
+    def _resolve_redirect(self, url: str) -> tuple[bool, str, Optional[str]]:
         """
         Follow redirects to get the final URL.
 
@@ -213,7 +215,7 @@ class URLResolver:
         except requests.exceptions.RequestException as e:
             return False, url, str(e)
 
-    def _fetch_and_extract_links(self, url: str) -> Tuple[bool, List[str], Optional[str]]:
+    def _fetch_and_extract_links(self, url: str) -> tuple[bool, list[str], Optional[str]]:
         """
         Fetch a page and extract all links.
 
@@ -274,7 +276,10 @@ class URLResolver:
             )
 
         # Check if it's a short URL or redirect
-        if any(short in (domain or "") for short in ["t.co", "bit.ly", "lnkd.in", "ow.ly", "buff.ly", "tinyurl.com"]):
+        if any(
+            short in (domain or "")
+            for short in ["t.co", "bit.ly", "lnkd.in", "ow.ly", "buff.ly", "tinyurl.com"]
+        ):
             success, final_url, error = self._resolve_redirect(url)
             if success:
                 # Recursively resolve the final URL
@@ -345,7 +350,7 @@ class URLResolver:
             domain=domain,
         )
 
-    def resolve_batch(self, urls: List[str]) -> List[ResolveResult]:
+    def resolve_batch(self, urls: list[str]) -> list[ResolveResult]:
         """
         Resolve multiple URLs.
 
@@ -360,12 +365,11 @@ class URLResolver:
             result = self.resolve(url)
             results.append(result)
             logger.debug(
-                f"Resolved {url} -> {result.resolved_url or 'FAILED'}"
-                f" ({result.error or 'OK'})"
+                f"Resolved {url} -> {result.resolved_url or 'FAILED'} ({result.error or 'OK'})"
             )
         return results
 
-    def is_downloadable(self, url: str) -> Tuple[bool, str]:
+    def is_downloadable(self, url: str) -> tuple[bool, str]:
         """
         Quick check if a URL is likely downloadable.
 

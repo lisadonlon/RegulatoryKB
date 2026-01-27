@@ -8,19 +8,17 @@ import logging
 import os
 import smtplib
 import ssl
-import uuid
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from ..config import config
 from .filter import FilteredEntry
 from .summarizer import Summary
 
 if TYPE_CHECKING:
-    from .digest_tracker import DigestEntry
     from .reply_handler import ProcessedDownload
 
 logger = logging.getLogger(__name__)
@@ -33,7 +31,7 @@ class EmailConfig:
     smtp_server: str
     smtp_port: int
     sender: str
-    recipients: List[str]
+    recipients: list[str]
     username: Optional[str] = None
     password: Optional[str] = None
     use_tls: bool = True
@@ -277,7 +275,7 @@ class Emailer:
         subject: str,
         html_content: str,
         plain_content: str,
-        recipients: Optional[List[str]] = None,
+        recipients: Optional[list[str]] = None,
     ) -> MIMEMultipart:
         """Create a MIME multipart email message."""
         msg = MIMEMultipart("alternative")
@@ -293,7 +291,7 @@ class Emailer:
 
         return msg
 
-    def _send_email(self, msg: MIMEMultipart, recipients: List[str]) -> EmailResult:
+    def _send_email(self, msg: MIMEMultipart, recipients: list[str]) -> EmailResult:
         """Send an email via SMTP."""
         if not recipients:
             return EmailResult(success=False, error="No recipients specified")
@@ -319,7 +317,9 @@ class Emailer:
 
         except smtplib.SMTPAuthenticationError as e:
             logger.error(f"SMTP authentication failed: {e}")
-            return EmailResult(success=False, error="SMTP authentication failed. Check credentials.")
+            return EmailResult(
+                success=False, error="SMTP authentication failed. Check credentials."
+            )
 
         except smtplib.SMTPException as e:
             logger.error(f"SMTP error: {e}")
@@ -331,9 +331,9 @@ class Emailer:
 
     def _generate_alerts_section(
         self,
-        high_priority: List[Tuple[FilteredEntry, Optional[Summary]]],
-        entry_ids: Optional[Dict[int, str]] = None,
-        all_entries: Optional[List[Tuple[FilteredEntry, Optional[Summary]]]] = None,
+        high_priority: list[tuple[FilteredEntry, Optional[Summary]]],
+        entry_ids: Optional[dict[int, str]] = None,
+        all_entries: Optional[list[tuple[FilteredEntry, Optional[Summary]]]] = None,
     ) -> str:
         """Generate HTML for the alerts section."""
         if not high_priority:
@@ -359,23 +359,23 @@ class Emailer:
                 seq = entry_id.split("-")[-1] if "-" in entry_id else entry_id
                 id_badge = f'<span style="background: white; color: #742a2a; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 11px; margin-right: 6px;">[{seq}]</span>'
 
-            html += f'''
+            html += f"""
             <div class="{alert_class}">
                 <h3>{id_badge}{entry.entry.title}</h3>
                 <p class="meta">{entry.entry.agency} | {entry.entry.date}</p>
                 {f"<p>{summary.what_happened}</p>" if summary and summary.what_happened else ""}
                 {f'<p><a href="{entry.entry.link}">View source →</a></p>' if entry.entry.link else ""}
             </div>
-            '''
+            """
 
         html += "</div>"
         return html
 
     def _generate_summaries_section(
         self,
-        entries_with_summaries: List[Tuple[FilteredEntry, Optional[Summary]]],
+        entries_with_summaries: list[tuple[FilteredEntry, Optional[Summary]]],
         by_category: bool = True,
-        entry_ids: Optional[Dict[int, str]] = None,
+        entry_ids: Optional[dict[int, str]] = None,
     ) -> str:
         """Generate HTML for the summaries section."""
         if not entries_with_summaries:
@@ -386,7 +386,7 @@ class Emailer:
 
         if by_category:
             # Group by category, preserving original index
-            categories: Dict[str, List] = {}
+            categories: dict[str, list] = {}
             for idx, (entry, summary) in enumerate(entries_with_summaries):
                 cat = entry.entry.category or "Other"
                 if cat not in categories:
@@ -424,19 +424,24 @@ class Emailer:
             seq = entry_id.split("-")[-1] if "-" in entry_id else entry_id
             id_badge = f'<span style="display: inline-block; background: #3182ce; color: white; padding: 2px 8px; border-radius: 4px; font-family: monospace; font-size: 12px; margin-right: 8px;">[{seq}]</span>'
 
-        html = f'''
+        html = f"""
         <div class="entry">
             <h3>{id_badge}{entry.entry.title}</h3>
             <div class="meta">{entry.entry.agency} | {entry.entry.date} | {entry.entry.category or "Update"}</div>
-        '''
+        """
 
         if summary:
             if summary.what_happened:
                 html += f'<div class="summary"><strong>What:</strong> {summary.what_happened}</div>'
             if summary.why_it_matters:
                 html += f'<div class="summary"><strong>Why:</strong> {summary.why_it_matters}</div>'
-            if summary.action_needed and summary.action_needed.lower() not in ("information only", "no action"):
-                html += f'<div class="summary"><strong>Action:</strong> {summary.action_needed}</div>'
+            if summary.action_needed and summary.action_needed.lower() not in (
+                "information only",
+                "no action",
+            ):
+                html += (
+                    f'<div class="summary"><strong>Action:</strong> {summary.action_needed}</div>'
+                )
 
         if entry.entry.link:
             html += f'<p><a href="{entry.entry.link}">Read more →</a></p>'
@@ -467,10 +472,10 @@ class Emailer:
 
     def send_weekly_digest(
         self,
-        entries_with_summaries: List[Tuple[FilteredEntry, Optional[Summary]]],
-        high_priority: List[Tuple[FilteredEntry, Optional[Summary]]],
+        entries_with_summaries: list[tuple[FilteredEntry, Optional[Summary]]],
+        high_priority: list[tuple[FilteredEntry, Optional[Summary]]],
         date_range: str,
-        recipients: Optional[List[str]] = None,
+        recipients: Optional[list[str]] = None,
         track_entries: bool = True,
     ) -> EmailResult:
         """
@@ -489,9 +494,8 @@ class Emailer:
         from .digest_tracker import digest_tracker
 
         # Generate entry IDs and track
-        entry_ids: Dict[int, str] = {}
+        entry_ids: dict[int, str] = {}
         digest_date = datetime.now()
-        tracked_entries = []
 
         if track_entries:
             # Track entries and get their IDs
@@ -503,7 +507,7 @@ class Emailer:
                 entry_ids[idx] = tracked_entry.entry_id
 
         # Count categories
-        categories = set(e.entry.category for e, _ in entries_with_summaries if e.entry.category)
+        categories = {e.entry.category for e, _ in entries_with_summaries if e.entry.category}
 
         # Generate sections with entry IDs
         alerts_section = self._generate_alerts_section(
@@ -551,14 +555,16 @@ class Emailer:
 
         # Update digest with message ID if tracking
         if track_entries and result.success:
-            logger.info(f"Tracked {len(entry_ids)} entries for digest with Message-ID: {message_id}")
+            logger.info(
+                f"Tracked {len(entry_ids)} entries for digest with Message-ID: {message_id}"
+            )
 
         return result
 
     def send_daily_alert(
         self,
-        alerts: List[Tuple[FilteredEntry, Optional[Summary]]],
-        recipients: Optional[List[str]] = None,
+        alerts: list[tuple[FilteredEntry, Optional[Summary]]],
+        recipients: Optional[list[str]] = None,
     ) -> EmailResult:
         """
         Send a daily alert email for high-priority items.
@@ -576,7 +582,7 @@ class Emailer:
         # Generate alerts content
         alerts_content = ""
         for entry, summary in alerts:
-            alerts_content += f'''
+            alerts_content += f"""
             <div class="alert">
                 <h2>{entry.entry.title}</h2>
                 <div class="meta">{entry.entry.agency} | {entry.entry.category}</div>
@@ -586,7 +592,7 @@ class Emailer:
                     {f'<p><a href="{entry.entry.link}">View source →</a></p>' if entry.entry.link else ""}
                 </div>
             </div>
-            '''
+            """
 
         html = DAILY_ALERT_TEMPLATE.format(
             date=datetime.now().strftime("%B %d, %Y"),
@@ -603,11 +609,11 @@ class Emailer:
 
     def send_monthly_digest(
         self,
-        highlights: List[Tuple[FilteredEntry, Optional[Summary]]],
+        highlights: list[tuple[FilteredEntry, Optional[Summary]]],
         executive_summary: str,
-        action_items: List[str],
+        action_items: list[str],
         month_year: str,
-        recipients: Optional[List[str]] = None,
+        recipients: Optional[list[str]] = None,
     ) -> EmailResult:
         """
         Send the monthly compilation email.
@@ -625,13 +631,13 @@ class Emailer:
         # Generate highlights section
         highlights_html = '<div class="highlights"><h2>Top Highlights</h2>'
         for entry, summary in highlights[:15]:
-            highlights_html += f'''
+            highlights_html += f"""
             <div class="highlight-item">
                 <h3>{entry.entry.title}</h3>
                 <p style="color: #718096; font-size: 12px;">{entry.entry.agency} | {entry.entry.date}</p>
                 {f"<p>{summary.what_happened}</p>" if summary and summary.what_happened else ""}
             </div>
-            '''
+            """
         highlights_html += "</div>"
 
         # Generate action items section
@@ -684,9 +690,9 @@ class Emailer:
 
     def send_download_confirmation(
         self,
-        successful: List["ProcessedDownload"],
-        needs_manual: List["ProcessedDownload"],
-        failed: List["ProcessedDownload"],
+        successful: list["ProcessedDownload"],
+        needs_manual: list["ProcessedDownload"],
+        failed: list["ProcessedDownload"],
         requester_email: str,
     ) -> EmailResult:
         """
@@ -709,19 +715,27 @@ class Emailer:
         if successful:
             successful_section = '<h2 style="color: #276749;">Successful Downloads</h2>'
             for download in successful:
-                kb_id = f' <span class="kb-id">(KB ID: {download.kb_doc_id})</span>' if download.kb_doc_id else ""
-                seq = download.entry.entry_id.split("-")[-1] if "-" in download.entry.entry_id else download.entry.entry_id
+                kb_id = (
+                    f' <span class="kb-id">(KB ID: {download.kb_doc_id})</span>'
+                    if download.kb_doc_id
+                    else ""
+                )
+                seq = (
+                    download.entry.entry_id.split("-")[-1]
+                    if "-" in download.entry.entry_id
+                    else download.entry.entry_id
+                )
 
                 # Content warning badge
                 content_badge = ""
                 cw = getattr(download, "content_warning", None)
                 if cw:
-                    content_badge = f'''
+                    content_badge = f"""
                     <div style="background: #fefcbf; padding: 8px 12px; margin-top: 6px;
                                 border-radius: 4px; font-size: 12px; color: #744210;">
                         <strong>Warning:</strong> {cw}
                     </div>
-                    '''
+                    """
 
                 # Version diff badge
                 version_badge = ""
@@ -730,7 +744,7 @@ class Emailer:
                     sim_pct = f"{vd.stats.similarity:.0%}"
                     auto_super = getattr(vd, "auto_superseded", True)
                     if auto_super:
-                        version_badge = f'''
+                        version_badge = f"""
                         <div style="background: #ebf8ff; padding: 8px 12px; margin-top: 6px;
                                     border-radius: 4px; font-size: 12px; color: #2c5282;">
                             <strong>Version update detected:</strong>
@@ -740,9 +754,9 @@ class Emailer:
                             Removed: {vd.stats.removed} |
                             Changed: {vd.stats.changed}
                         </div>
-                        '''
+                        """
                     else:
-                        version_badge = f'''
+                        version_badge = f"""
                         <div style="background: #fefcbf; padding: 8px 12px; margin-top: 6px;
                                     border-radius: 4px; font-size: 12px; color: #744210;">
                             <strong>Possible version match — NOT auto-superseded:</strong>
@@ -750,9 +764,9 @@ class Emailer:
                             Similarity: {sim_pct} (below threshold) |
                             Use <code>regkb diff {vd.old_doc_id} {vd.new_doc_id}</code> to review
                         </div>
-                        '''
+                        """
 
-                successful_section += f'''
+                successful_section += f"""
                 <div class="success">
                     <div class="entry">
                         <span class="entry-id">[{seq}]</span>
@@ -761,7 +775,7 @@ class Emailer:
                     {content_badge}
                     {version_badge}
                 </div>
-                '''
+                """
 
         # Generate manual section
         manual_section = ""
@@ -769,8 +783,12 @@ class Emailer:
             manual_section = '<h2 style="color: #744210;">Needs Manual URL</h2>'
             manual_section += '<p style="font-size: 12px; color: #744210;">Reply with the direct document URL to retry these downloads.</p>'
             for download in needs_manual:
-                seq = download.entry.entry_id.split("-")[-1] if "-" in download.entry.entry_id else download.entry.entry_id
-                manual_section += f'''
+                seq = (
+                    download.entry.entry_id.split("-")[-1]
+                    if "-" in download.entry.entry_id
+                    else download.entry.entry_id
+                )
+                manual_section += f"""
                 <div class="manual">
                     <div class="entry">
                         <span class="entry-id">[{seq}]</span>
@@ -780,15 +798,19 @@ class Emailer:
                         Original URL: <a href="{download.entry.link}">{download.entry.link[:60]}...</a>
                     </p>
                 </div>
-                '''
+                """
 
         # Generate failed section
         failed_section = ""
         if failed:
             failed_section = '<h2 style="color: #742a2a;">Failed Downloads</h2>'
             for download in failed:
-                seq = download.entry.entry_id.split("-")[-1] if "-" in download.entry.entry_id else download.entry.entry_id
-                failed_section += f'''
+                seq = (
+                    download.entry.entry_id.split("-")[-1]
+                    if "-" in download.entry.entry_id
+                    else download.entry.entry_id
+                )
+                failed_section += f"""
                 <div class="failed">
                     <div class="entry">
                         <span class="entry-id">[{seq}]</span>
@@ -798,7 +820,7 @@ class Emailer:
                         Error: {download.error or "Unknown error"}
                     </p>
                 </div>
-                '''
+                """
 
         # Build HTML
         html = DOWNLOAD_CONFIRMATION_TEMPLATE.format(
@@ -813,6 +835,7 @@ class Emailer:
 
         # Extract email address from "Name <email>" format
         import re
+
         match = re.search(r"<([^>]+)>", requester_email)
         recipient = match.group(1) if match else requester_email
 
