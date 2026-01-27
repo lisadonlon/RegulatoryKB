@@ -697,16 +697,20 @@ def diff_cmd(id1: int, id2: int, output: Optional[Path], stats_only: bool, conte
     if result.unified_diff:
         click.echo()
         for line in result.unified_diff.splitlines():
-            if line.startswith("+++") or line.startswith("---"):
-                click.echo(click.style(line, bold=True))
-            elif line.startswith("+"):
-                click.echo(click.style(line, fg="green"))
-            elif line.startswith("-"):
-                click.echo(click.style(line, fg="red"))
-            elif line.startswith("@@"):
-                click.echo(click.style(line, fg="cyan"))
+            # Replace characters the console can't encode
+            safe_line = line.encode(sys.stdout.encoding or "utf-8", errors="replace").decode(
+                sys.stdout.encoding or "utf-8", errors="replace"
+            )
+            if safe_line.startswith("+++") or safe_line.startswith("---"):
+                click.echo(click.style(safe_line, bold=True))
+            elif safe_line.startswith("+"):
+                click.echo(click.style(safe_line, fg="green"))
+            elif safe_line.startswith("-"):
+                click.echo(click.style(safe_line, fg="red"))
+            elif safe_line.startswith("@@"):
+                click.echo(click.style(safe_line, fg="cyan"))
             else:
-                click.echo(line)
+                click.echo(safe_line)
     else:
         click.echo("\nDocuments are identical.")
 
