@@ -357,7 +357,16 @@ class DocumentImporter:
         if config.get("import.extract_text", True):
             success, extracted_path, _ = extractor.extract(archive_path, doc_id)
             if success and extracted_path:
-                db.update_document(doc_id, extracted_path=str(extracted_path))
+                # Read extracted text and store in DB for FTS
+                try:
+                    extracted_text = extracted_path.read_text(encoding="utf-8")[:100000]
+                except Exception:
+                    extracted_text = None
+                db.update_document(
+                    doc_id,
+                    extracted_path=str(extracted_path),
+                    extracted_text=extracted_text,
+                )
 
         # Validate content matches title (advisory, never fails the import)
         self.last_content_warning = None

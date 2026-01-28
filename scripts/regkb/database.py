@@ -71,6 +71,7 @@ class Database:
                     source_url TEXT,
                     file_path TEXT NOT NULL,
                     extracted_path TEXT,
+                    extracted_text TEXT,
                     description TEXT,
                     download_date TEXT NOT NULL,
                     import_date TEXT NOT NULL,
@@ -96,23 +97,23 @@ class Database:
             cursor.execute("""
                 CREATE TRIGGER IF NOT EXISTS documents_ai AFTER INSERT ON documents BEGIN
                     INSERT INTO documents_fts(rowid, title, description, extracted_text)
-                    VALUES (new.id, new.title, new.description, '');
+                    VALUES (new.id, new.title, new.description, new.extracted_text);
                 END
             """)
 
             cursor.execute("""
                 CREATE TRIGGER IF NOT EXISTS documents_ad AFTER DELETE ON documents BEGIN
                     INSERT INTO documents_fts(documents_fts, rowid, title, description, extracted_text)
-                    VALUES ('delete', old.id, old.title, old.description, '');
+                    VALUES ('delete', old.id, old.title, old.description, old.extracted_text);
                 END
             """)
 
             cursor.execute("""
                 CREATE TRIGGER IF NOT EXISTS documents_au AFTER UPDATE ON documents BEGIN
                     INSERT INTO documents_fts(documents_fts, rowid, title, description, extracted_text)
-                    VALUES ('delete', old.id, old.title, old.description, '');
+                    VALUES ('delete', old.id, old.title, old.description, old.extracted_text);
                     INSERT INTO documents_fts(rowid, title, description, extracted_text)
-                    VALUES (new.id, new.title, new.description, '');
+                    VALUES (new.id, new.title, new.description, new.extracted_text);
                 END
             """)
 
@@ -272,6 +273,7 @@ class Database:
             "source_url",
             "description",
             "extracted_path",
+            "extracted_text",
             "superseded_by",
         }
 

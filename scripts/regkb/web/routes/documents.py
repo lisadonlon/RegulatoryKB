@@ -55,6 +55,7 @@ async def upload_document(
     source_url: str = Form(None),
     description: str = Form(None),
     importer: DocumentImporter = Depends(get_importer),
+    db: Database = Depends(get_db),
 ):
     """Upload a PDF document."""
     # Save to temp file
@@ -64,6 +65,18 @@ async def upload_document(
         tmp_path = Path(tmp.name)
 
     try:
+        # Validate PDF first to give specific error
+        is_valid, validation_error = importer.is_valid_pdf(tmp_path)
+        if not is_valid:
+            flash(request, f"Invalid PDF: {validation_error}", "error")
+            return RedirectResponse("/documents/add", status_code=303)
+
+        # Check for duplicate
+        file_hash = importer.calculate_hash(tmp_path)
+        if db.document_exists(file_hash):
+            flash(request, "Document already exists in the knowledge base.", "warning")
+            return RedirectResponse("/documents/add", status_code=303)
+
         metadata = {
             "title": title,
             "document_type": document_type,
@@ -78,7 +91,7 @@ async def upload_document(
             flash(request, f"Document added successfully! (ID: {doc_id})", "success")
             return RedirectResponse(f"/documents/{doc_id}", status_code=303)
         else:
-            flash(request, "Document already exists or import failed.", "warning")
+            flash(request, "Import failed unexpectedly. Check server logs.", "error")
             return RedirectResponse("/documents/add", status_code=303)
     finally:
         tmp_path.unlink(missing_ok=True)
