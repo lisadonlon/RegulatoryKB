@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}{{ doc.title }} - RegKB{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ul>
+        <li><a href="/documents">Browse</a></li>
+        <li>{{ doc.title[:50] }}{% if doc.title|length > 50 %}...{% endif %}</li>
+    </ul>
+</nav>
+
+<h1>{{ doc.title }}</h1>
+
+<div class="grid">
+    <div>
+        <article>
+            <header>Document Information</header>
+            <table>
+                <tr><th>ID</th><td>{{ doc.id }}</td></tr>
+                <tr><th>Type</th><td>{{ doc.document_type }}</td></tr>
+                <tr><th>Jurisdiction</th><td>{{ doc.jurisdiction }}</td></tr>
+                <tr><th>Version</th><td>{{ doc.version or 'N/A' }}</td></tr>
+                <tr><th>Latest</th><td>{{ 'Yes' if doc.is_latest else 'No' }}</td></tr>
+                <tr><th>Imported</th><td>{{ doc.import_date[:10] if doc.import_date else 'N/A' }}</td></tr>
+                {% if doc.source_url %}
+                <tr><th>Source</th><td><a href="{{ doc.source_url }}" target="_blank">{{ doc.source_url[:50] }}...</a></td></tr>
+                {% endif %}
+                {% if doc.description %}
+                <tr><th>Description</th><td>{{ doc.description }}</td></tr>
+                {% endif %}
+            </table>
+            <footer>
+                <a href="/documents/{{ doc.id }}/download" role="button">Download PDF</a>
+                <a href="/documents/{{ doc.id }}/text" role="button" class="secondary outline">View Text</a>
+            </footer>
+        </article>
+    </div>
+
+    <div>
+        <article>
+            <header>Edit Metadata</header>
+            <form method="post" action="/documents/{{ doc.id }}/edit">
+                <label>
+                    Title
+                    <input type="text" name="title" value="{{ doc.title }}" required>
+                </label>
+                <label>
+                    Type
+                    <select name="document_type" required>
+                        {% for t in document_types %}
+                        <option value="{{ t }}" {% if doc.document_type == t %}selected{% endif %}>{{ t }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>
+                    Jurisdiction
+                    <select name="jurisdiction" required>
+                        {% for j in jurisdictions %}
+                        <option value="{{ j }}" {% if doc.jurisdiction == j %}selected{% endif %}>{{ j }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>
+                    Version
+                    <input type="text" name="version" value="{{ doc.version or '' }}" placeholder="e.g., 2024, Rev 5">
+                </label>
+                <label>
+                    Description
+                    <textarea name="description" rows="3">{{ doc.description or '' }}</textarea>
+                </label>
+                <button type="submit">Save Changes</button>
+            </form>
+        </article>
+    </div>
+</div>
+
+{% if extracted_text %}
+<article>
+    <header>Extracted Text Preview</header>
+    <pre style="max-height: 400px; overflow-y: auto; white-space: pre-wrap;">{{ extracted_text[:5000] }}{% if extracted_text|length > 5000 %}
+
+... (truncated, {{ extracted_text|length }} chars total){% endif %}</pre>
+</article>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,38 @@
+{% if results %}
+<p>Found {{ results|length }} results</p>
+
+<table role="grid">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Title</th>
+            <th>Type</th>
+            <th>Jurisdiction</th>
+            <th>Score</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for doc in results %}
+        <tr>
+            <td>{{ loop.index }}</td>
+            <td>
+                <a href="/documents/{{ doc.id }}"><strong>{{ doc.title }}</strong></a>
+                {% if doc.excerpt %}
+                <br><small>{{ doc.excerpt[:200] }}{% if doc.excerpt|length > 200 %}...{% endif %}</small>
+                {% endif %}
+            </td>
+            <td>{{ doc.document_type }}</td>
+            <td>{{ doc.jurisdiction }}</td>
+            <td>{{ '%.3f'|format(doc.relevance_score|default(0)) }}</td>
+            <td>
+                <a href="/documents/{{ doc.id }}" role="button" class="outline secondary">View</a>
+                <a href="/documents/{{ doc.id }}/download" role="button" class="outline">PDF</a>
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No results found. Try different search terms.</p>
+{% endif %}

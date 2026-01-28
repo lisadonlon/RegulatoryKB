@@ -1,0 +1,93 @@
+/* Flash messages */
+.flash {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: var(--pico-border-radius);
+}
+
+.flash-success {
+    background-color: var(--pico-ins-color);
+    color: white;
+}
+
+.flash-error {
+    background-color: var(--pico-del-color);
+    color: white;
+}
+
+.flash-warning {
+    background-color: #f0ad4e;
+    color: black;
+}
+
+.flash-info {
+    background-color: var(--pico-primary);
+    color: white;
+}
+
+/* HTMX loading indicator */
+.htmx-indicator {
+    display: none;
+}
+
+.htmx-request .htmx-indicator {
+    display: inline;
+}
+
+.htmx-request.htmx-indicator {
+    display: inline;
+}
+
+/* Bar charts */
+.bar-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.bar-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.bar-label {
+    min-width: 120px;
+    font-size: 0.9rem;
+}
+
+.bar-container {
+    flex: 1;
+    background-color: var(--pico-muted-border-color);
+    border-radius: var(--pico-border-radius);
+    height: 1.5rem;
+}
+
+.bar-fill {
+    background-color: var(--pico-primary);
+    color: white;
+    height: 100%;
+    border-radius: var(--pico-border-radius);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 0.5rem;
+    font-size: 0.8rem;
+    min-width: 2rem;
+}
+
+/* Table tweaks */
+table {
+    font-size: 0.9rem;
+}
+
+/* Button spacing in tables */
+td a[role="button"] {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+}
+
+/* Tab content */
+.tab-content {
+    padding: 1rem 0;
+}

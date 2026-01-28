@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Search - RegKB{% endblock %}
+
+{% block content %}
+<h1>Search Documents</h1>
+
+<form hx-post="/search"
+      hx-target="#results"
+      hx-swap="innerHTML"
+      hx-indicator="#loading"
+      method="post"
+      action="/search">
+    <div class="grid">
+        <input type="search"
+               name="q"
+               value="{{ query }}"
+               placeholder="Search documents..."
+               autofocus>
+        <button type="submit">Search</button>
+    </div>
+
+    <details>
+        <summary>Filters</summary>
+        <div class="grid">
+            <label>
+                Type
+                <select name="type">
+                    <option value="">All Types</option>
+                    {% for t in document_types %}
+                    <option value="{{ t }}" {% if selected_type == t %}selected{% endif %}>{{ t }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>
+                Jurisdiction
+                <select name="jurisdiction">
+                    <option value="">All Jurisdictions</option>
+                    {% for j in jurisdictions %}
+                    <option value="{{ j }}" {% if selected_jurisdiction == j %}selected{% endif %}>{{ j }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>
+                Max Results
+                <select name="limit">
+                    <option value="10" {% if limit == 10 %}selected{% endif %}>10</option>
+                    <option value="25" {% if limit == 25 %}selected{% endif %}>25</option>
+                    <option value="50" {% if limit == 50 %}selected{% endif %}>50</option>
+                </select>
+            </label>
+        </div>
+    </details>
+</form>
+
+<span id="loading" class="htmx-indicator">Searching...</span>
+
+<div id="results">
+    {% if searched %}
+        {% include 'partials/search_results.html' %}
+    {% else %}
+        <p>Enter a search query to find documents.</p>
+
+        {% if recent %}
+        <h3>Recent Documents</h3>
+        <ul>
+            {% for doc in recent %}
+            <li><a href="/documents/{{ doc.id }}">{{ doc.title }}</a> ({{ doc.document_type }}, {{ doc.jurisdiction }})</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    {% endif %}
+</div>
+{% endblock %}

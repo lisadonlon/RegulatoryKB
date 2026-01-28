@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Statistics - RegKB{% endblock %}
+
+{% block content %}
+<h1>Statistics</h1>
+
+<div class="grid">
+    <article>
+        <header>Total Documents</header>
+        <p style="font-size: 3rem; text-align: center;">{{ stats.total_documents }}</p>
+    </article>
+    <article>
+        <header>Latest Versions</header>
+        <p style="font-size: 3rem; text-align: center;">{{ stats.latest_versions }}</p>
+    </article>
+    <article>
+        <header>Document Types</header>
+        <p style="font-size: 3rem; text-align: center;">{{ by_type|length }}</p>
+    </article>
+    <article>
+        <header>Jurisdictions</header>
+        <p style="font-size: 3rem; text-align: center;">{{ by_jurisdiction|length }}</p>
+    </article>
+</div>
+
+<div class="grid">
+    <article>
+        <header>Documents by Type</header>
+        {% if by_type %}
+        {% set max_type = by_type.values()|max %}
+        <div class="bar-chart">
+            {% for type, count in by_type.items()|sort(attribute='1', reverse=true) %}
+            <div class="bar-row">
+                <span class="bar-label">{{ type }}</span>
+                <div class="bar-container">
+                    <div class="bar-fill" style="width: {{ (count / max_type * 100)|int }}%;">{{ count }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p>No data available</p>
+        {% endif %}
+    </article>
+
+    <article>
+        <header>Documents by Jurisdiction</header>
+        {% if by_jurisdiction %}
+        {% set max_jur = by_jurisdiction.values()|max %}
+        <div class="bar-chart">
+            {% for jur, count in by_jurisdiction.items()|sort(attribute='1', reverse=true) %}
+            <div class="bar-row">
+                <span class="bar-label">{{ jur }}</span>
+                <div class="bar-container">
+                    <div class="bar-fill" style="width: {{ (count / max_jur * 100)|int }}%;">{{ count }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p>No data available</p>
+        {% endif %}
+    </article>
+</div>
+{% endblock %}

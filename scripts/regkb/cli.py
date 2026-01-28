@@ -2647,6 +2647,27 @@ def intel_digest_entries(date: Optional[str], limit: int) -> None:
         click.echo(f"Last digest: {stats['last_digest_date']}")
 
 
+@cli.command()
+@click.option("--host", default="127.0.0.1", help="Host to bind")
+@click.option("--port", default=8000, type=int, help="Port to bind")
+@click.option("--reload", is_flag=True, help="Enable auto-reload for development")
+def web(host: str, port: int, reload: bool) -> None:
+    """Start the web interface."""
+    try:
+        import uvicorn
+    except ImportError as err:
+        click.echo(
+            click.style(
+                "Web dependencies not installed. Run: pip install -e '.[web]'",
+                fg="red",
+            )
+        )
+        raise SystemExit(1) from err
+
+    click.echo(click.style(f"Starting web server at http://{host}:{port}", fg="green"))
+    uvicorn.run("regkb.web.main:app", host=host, port=port, reload=reload)
+
+
 def main() -> None:
     """Main entry point."""
     cli()

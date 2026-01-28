@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}Add Document - RegKB{% endblock %}
+
+{% block content %}
+<h1>Add Document</h1>
+
+<article>
+    <header>
+        <nav>
+            <ul>
+                <li><a href="#upload" onclick="showTab('upload')">Upload File</a></li>
+                <li><a href="#url" onclick="showTab('url')">From URL</a></li>
+                <li><a href="#folder" onclick="showTab('folder')">Import Folder</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <div id="tab-upload" class="tab-content">
+        <h3>Upload a PDF</h3>
+        <form method="post" action="/documents/upload" enctype="multipart/form-data">
+            <label>
+                PDF File
+                <input type="file" name="file" accept=".pdf" required>
+            </label>
+            <div class="grid">
+                <label>
+                    Title
+                    <input type="text" name="title" placeholder="Document title" required>
+                </label>
+                <label>
+                    Type
+                    <select name="document_type" required>
+                        {% for t in document_types %}
+                        <option value="{{ t }}">{{ t }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+            </div>
+            <div class="grid">
+                <label>
+                    Jurisdiction
+                    <select name="jurisdiction" required>
+                        {% for j in jurisdictions %}
+                        <option value="{{ j }}">{{ j }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>
+                    Version (optional)
+                    <input type="text" name="version" placeholder="e.g., 2024, Rev 5">
+                </label>
+            </div>
+            <label>
+                Source URL (optional)
+                <input type="url" name="source_url" placeholder="https://...">
+            </label>
+            <label>
+                Description (optional)
+                <textarea name="description" rows="2"></textarea>
+            </label>
+            <button type="submit">Upload Document</button>
+        </form>
+    </div>
+
+    <div id="tab-url" class="tab-content" style="display: none;">
+        <h3>Download from URL</h3>
+        <form method="post" action="/documents/url">
+            <label>
+                Document URL
+                <input type="url" name="url" placeholder="https://example.com/document.pdf" required>
+            </label>
+            <div class="grid">
+                <label>
+                    Title (optional, auto-detected if blank)
+                    <input type="text" name="title" placeholder="Document title">
+                </label>
+                <label>
+                    Type
+                    <select name="document_type" required>
+                        {% for t in document_types %}
+                        <option value="{{ t }}">{{ t }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+            </div>
+            <div class="grid">
+                <label>
+                    Jurisdiction
+                    <select name="jurisdiction" required>
+                        {% for j in jurisdictions %}
+                        <option value="{{ j }}">{{ j }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>
+                    Version (optional)
+                    <input type="text" name="version" placeholder="e.g., 2024, Rev 5">
+                </label>
+            </div>
+            <label>
+                Description (optional)
+                <textarea name="description" rows="2"></textarea>
+            </label>
+            <button type="submit">Download & Add</button>
+        </form>
+    </div>
+
+    <div id="tab-folder" class="tab-content" style="display: none;">
+        <h3>Batch Import from Folder</h3>
+        <form method="post" action="/documents/folder">
+            <label>
+                Folder Path
+                <input type="text" name="folder_path" placeholder="C:\Documents\Regulatory" required>
+            </label>
+            <label>
+                <input type="checkbox" name="recursive" value="true" checked>
+                Include subfolders
+            </label>
+            <button type="submit">Start Import</button>
+        </form>
+        <p><small>All PDFs in the folder will be imported with default metadata. You can edit individual documents afterwards.</small></p>
+    </div>
+</article>
+
+<script>
+function showTab(tabName) {
+    document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
+    document.getElementById('tab-' + tabName).style.display = 'block';
+}
+</script>
+{% endblock %}

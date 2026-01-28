@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Browse - RegKB{% endblock %}
+
+{% block content %}
+<h1>Browse Documents</h1>
+
+<form hx-get="/documents"
+      hx-target="#document-list"
+      hx-swap="innerHTML"
+      method="get"
+      action="/documents">
+    <div class="grid">
+        <label>
+            Type
+            <select name="type" hx-trigger="change">
+                <option value="">All Types</option>
+                {% for t in document_types %}
+                <option value="{{ t }}" {% if selected_type == t %}selected{% endif %}>{{ t }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            Jurisdiction
+            <select name="jurisdiction" hx-trigger="change">
+                <option value="">All Jurisdictions</option>
+                {% for j in jurisdictions %}
+                <option value="{{ j }}" {% if selected_jurisdiction == j %}selected{% endif %}>{{ j }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            Per Page
+            <select name="per_page">
+                <option value="10" {% if per_page == 10 %}selected{% endif %}>10</option>
+                <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
+                <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+                <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+            </select>
+        </label>
+        <button type="submit">Filter</button>
+    </div>
+</form>
+
+<div id="document-list">
+    {% include 'partials/document_list.html' %}
+</div>
+
+{% if total_pages > 1 %}
+<nav>
+    <ul>
+        {% if page > 1 %}
+        <li><a href="/documents?page={{ page - 1 }}&type={{ selected_type }}&jurisdiction={{ selected_jurisdiction }}&per_page={{ per_page }}">Previous</a></li>
+        {% endif %}
+        <li>Page {{ page }} of {{ total_pages }}</li>
+        {% if page < total_pages %}
+        <li><a href="/documents?page={{ page + 1 }}&type={{ selected_type }}&jurisdiction={{ selected_jurisdiction }}&per_page={{ per_page }}">Next</a></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

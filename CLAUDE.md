@@ -8,7 +8,7 @@ Medical device regulatory affairs knowledge base. Python 3.9+ · Click CLI · SQ
 
 | File | Lines | Purpose |
 |------|------:|---------|
-| `pyproject.toml` | 97 | Build config, deps, tool settings (Black, Ruff, MyPy, pytest) |
+| `pyproject.toml` | 105 | Build config, deps, tool settings (Black, Ruff, MyPy, pytest) |
 | `.pre-commit-config.yaml` | 16 | Ruff + format + whitespace + YAML + large-file hooks |
 | `setup.py` | 11 | Shim for `pip install -e .` |
 | `config/config.yaml` | 306 | Runtime config: paths, doc types, jurisdictions, OCR, intelligence |
@@ -17,7 +17,7 @@ Medical device regulatory affairs knowledge base. Python 3.9+ · Click CLI · SQ
 
 | File | Lines | Purpose |
 |------|------:|---------|
-| `cli.py` | 2656 | Click CLI — 17 commands + `intel` subgroup (17 subcommands) |
+| `cli.py` | 2677 | Click CLI — 18 commands + `intel` subgroup (17 subcommands) |
 | `config.py` | 297 | Singleton config manager; loads YAML, validates/normalizes types + jurisdictions |
 | `database.py` | 485 | SQLite manager with FTS5 full-text search, CRUD, import batch tracking |
 | `search.py` | 313 | Dual search: SQLite FTS5 + ChromaDB semantic vector search |
@@ -30,7 +30,19 @@ Medical device regulatory affairs knowledge base. Python 3.9+ · Click CLI · SQ
 | `gap_analysis.py` | 324 | Compare KB against reference checklist; identifier matching + scoring |
 | `reference_docs.py` | 953 | Curated checklist of essential regulatory documents by jurisdiction |
 | `acquisition_list.py` | 880 | Acquisition URLs for missing docs by jurisdiction + priority |
-| `app.py` | 581 | Streamlit web UI for document management and search |
+
+### `scripts/regkb/web/` — FastAPI Web UI
+
+| File | Lines | Purpose |
+|------|------:|---------|
+| `main.py` | 60 | FastAPI app, session middleware, route registration |
+| `dependencies.py` | 50 | DI functions (get_db, get_search_engine), flash messages |
+| `routes/search.py` | 125 | Search page with HTMX live results |
+| `routes/browse.py` | 145 | Document list, detail view, PDF download, text view |
+| `routes/documents.py` | 175 | Upload PDF, import from URL, folder import, metadata edit |
+| `routes/admin.py` | 120 | Statistics, settings, backup, reindex with progress |
+| `templates/` | 7 files | Jinja2 templates: base, search, browse, detail, add, stats, settings |
+| `static/` | 3 files | Pico CSS, custom.css, htmx.min.js |
 
 ### `scripts/regkb/intelligence/` — Monitoring Pipeline
 
@@ -152,7 +164,9 @@ graph TD
 ```bash
 pip install -e ".[dev]"       # Dev install (pytest, black, ruff, mypy)
 pip install -e ".[ocr]"       # OCR support (pytesseract, Pillow)
+pip install -e ".[web]"       # Web UI (FastAPI, uvicorn, jinja2)
 regkb --help                  # CLI entry point
+regkb web --reload            # Start web UI at http://127.0.0.1:8000
 pytest                        # Run tests (verbose, short tracebacks)
 pre-commit run --all-files    # Lint/format check
 ```
@@ -350,6 +364,7 @@ Indexes: `hash` · `document_type` · `jurisdiction` · `is_latest`. Triggers: `
 | `regkb acquire` | Show acquisition list |
 | `regkb reindex` | Reindex all documents |
 | `regkb backup` | Database backup |
+| `regkb web` | Start FastAPI web interface |
 
 | Intel Subcommand | Description |
 |------------------|-------------|

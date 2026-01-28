@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}RegKB{% endblock %}</title>
+    <link rel="stylesheet" href="/static/css/pico.min.css">
+    <link rel="stylesheet" href="/static/css/custom.css">
+    <script src="/static/js/htmx.min.js" defer></script>
+</head>
+<body>
+    <nav class="container-fluid">
+        <ul>
+            <li><strong>RegKB</strong></li>
+        </ul>
+        <ul>
+            <li><a href="/search" {% if active_page == 'search' %}aria-current="page"{% endif %}>Search</a></li>
+            <li><a href="/documents" {% if active_page == 'browse' %}aria-current="page"{% endif %}>Browse</a></li>
+            <li><a href="/documents/add" {% if active_page == 'add' %}aria-current="page"{% endif %}>Add</a></li>
+            <li><a href="/admin/stats" {% if active_page == 'stats' %}aria-current="page"{% endif %}>Statistics</a></li>
+            <li><a href="/admin/settings" {% if active_page == 'settings' %}aria-current="page"{% endif %}>Settings</a></li>
+        </ul>
+    </nav>
+
+    <main class="container">
+        {% for flash in flashes %}
+        <article class="flash flash-{{ flash.category }}">
+            {{ flash.message }}
+        </article>
+        {% endfor %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="container">
+        <small>Total Documents: {{ stats.total_documents if stats else '?' }}</small>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - RegKB{% endblock %}
+
+{% block content %}
+<h1>Settings</h1>
+
+<article>
+    <header>Database Management</header>
+    <div class="grid">
+        <div>
+            <h4>Backup Database</h4>
+            <p>Create a backup of the current database.</p>
+            <form method="post" action="/admin/backup">
+                <button type="submit">Create Backup</button>
+            </form>
+        </div>
+        <div>
+            <h4>Reindex Search</h4>
+            <p>Rebuild the search index for all documents.</p>
+            <form method="post" action="/admin/reindex">
+                <button type="submit" {% if reindex_status.running %}disabled{% endif %}>
+                    {% if reindex_status.running %}Reindexing...{% else %}Reindex All{% endif %}
+                </button>
+            </form>
+            {% if reindex_status.running %}
+            <p hx-get="/admin/reindex/status" hx-trigger="every 2s" hx-swap="innerHTML">
+                Progress: {{ reindex_status.progress }} / {{ reindex_status.total }}
+            </p>
+            {% elif reindex_status.progress > 0 %}
+            <p>Last reindex: {{ reindex_status.progress }} documents</p>
+            {% endif %}
+            {% if reindex_status.error %}
+            <p style="color: var(--pico-del-color);">Error: {{ reindex_status.error }}</p>
+            {% endif %}
+        </div>
+    </div>
+</article>
+
+<article>
+    <header>Paths</header>
+    <table>
+        <tr><th>Base Directory</th><td><code>{{ config.base_dir }}</code></td></tr>
+        <tr><th>Archive</th><td><code>{{ config.archive_dir }}</code></td></tr>
+        <tr><th>Extracted</th><td><code>{{ config.extracted_dir }}</code></td></tr>
+        <tr><th>Database</th><td><code>{{ config.database_path }}</code></td></tr>
+        <tr><th>Backups</th><td><code>{{ config.backups_dir }}</code></td></tr>
+    </table>
+</article>
+
+<article>
+    <header>Document Types</header>
+    <p>{{ config.document_types|join(', ') }}</p>
+</article>
+
+<article>
+    <header>Jurisdictions</header>
+    <p>{{ config.jurisdictions|join(', ') }}</p>
+</article>
+{% endblock %}
