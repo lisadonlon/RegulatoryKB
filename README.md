@@ -108,6 +108,14 @@ graph TB
 - **Reply-to-download** — reply to a digest email with entry IDs to trigger document download, URL resolution, import, and confirmation email
 - **Scheduling** — Windows Task Scheduler XML and batch script generation
 
+### Web Interface
+- **FastAPI + Jinja2** — lightweight web UI at http://127.0.0.1:8000
+- **Search** with HTMX live results and filters
+- **Browse** documents with pagination, detail view, PDF download
+- **Add** documents via upload, URL, or folder import
+- **Statistics** dashboard with charts
+- **Windows service** — runs always-on via NSSM with auto-restart
+
 ## Installation
 
 ### Prerequisites
@@ -172,7 +180,44 @@ regkb gaps
 
 # Run the full intelligence workflow
 regkb intel run --email
+
+# Start the web interface
+regkb web --reload
 ```
+
+## Web Interface
+
+```bash
+# Install web dependencies
+pip install -e ".[web]"
+
+# Run in development mode
+regkb web --reload
+
+# Run on custom port
+regkb web --port 8080
+```
+
+### Windows Service (Always-On)
+
+```bash
+# Install NSSM
+winget install NSSM.NSSM
+
+# Run these as Administrator:
+scripts\install-all-deps-global.bat   # Install deps to system Python
+scripts\install-service.bat           # Create and start service
+scripts\fix-pythonpath.bat            # Configure Python path
+```
+
+Service management:
+```
+nssm status RegKBWeb      # Check status
+nssm restart RegKBWeb     # Restart
+nssm stop RegKBWeb        # Stop
+```
+
+The web UI will be available at http://127.0.0.1:8000 and auto-start on boot.
 
 ## CLI Command Reference
 
@@ -188,6 +233,7 @@ regkb intel run --email
 | `regkb update ID` | Update document metadata |
 | `regkb stats` | Knowledge base statistics |
 | `regkb backup` | Create database backup |
+| `regkb web` | Start web interface (`--reload` for dev, `--port 8000`) |
 
 ### Search & Extraction
 
@@ -296,7 +342,12 @@ RegulatoryKB/
 │       ├── acquisition_list.py
 │       ├── reference_docs.py # Reference document checklist
 │       ├── downloader.py     # Document downloader
-│       ├── app.py            # Streamlit web UI
+│       ├── web/              # FastAPI web UI
+│       │   ├── main.py       # App, middleware, routes
+│       │   ├── dependencies.py
+│       │   ├── routes/       # search, browse, documents, admin
+│       │   ├── templates/    # Jinja2 HTML templates
+│       │   └── static/       # CSS (Pico), JS (HTMX)
 │       └── intelligence/     # Intelligence module
 │           ├── fetcher.py    # Newsletter fetching
 │           ├── filter.py     # Content filtering
