@@ -171,6 +171,37 @@ pytest                        # Run tests (verbose, short tracebacks)
 pre-commit run --all-files    # Lint/format check
 ```
 
+## Windows Service Setup
+
+Always-on web UI via NSSM (Non-Sucking Service Manager).
+
+**Install service (run as Administrator):**
+```
+1. winget install NSSM.NSSM
+2. scripts\install-all-deps-global.bat   # Install deps to system Python
+3. scripts\install-service.bat           # Create & start service
+4. scripts\fix-pythonpath.bat            # Set PYTHONPATH for service
+```
+
+**Service management:**
+```
+nssm status RegKBWeb      # Check status
+nssm restart RegKBWeb     # Restart
+nssm stop RegKBWeb        # Stop
+nssm start RegKBWeb       # Start
+nssm edit RegKBWeb        # Edit config (GUI)
+```
+
+| Item | Value |
+|------|-------|
+| URL | http://127.0.0.1:8000 |
+| Service name | RegKBWeb |
+| Logs | `logs/service.log` |
+| Auto-start | Yes (on boot) |
+| Auto-restart | Yes (on crash) |
+
+**Uninstall:** `scripts\uninstall-service.bat` (as Administrator)
+
 ## Data Stores
 
 | Store | Location | Purpose |
