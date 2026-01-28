@@ -35,11 +35,11 @@ Medical device regulatory affairs knowledge base. Python 3.9+ · Click CLI · SQ
 
 | File | Lines | Purpose |
 |------|------:|---------|
-| `main.py` | 60 | FastAPI app, session middleware, route registration |
-| `dependencies.py` | 50 | DI functions (get_db, get_search_engine), flash messages |
+| `main.py` | 65 | FastAPI app, session middleware, route registration (documents before browse for /add) |
+| `dependencies.py` | 55 | DI functions (get_db, get_search_engine), flash messages |
 | `routes/search.py` | 125 | Search page with HTMX live results |
 | `routes/browse.py` | 145 | Document list, detail view, PDF download, text view |
-| `routes/documents.py` | 175 | Upload PDF, import from URL, folder import, metadata edit |
+| `routes/documents.py` | 185 | Upload PDF (with validation), import from URL, folder import, metadata edit |
 | `routes/admin.py` | 120 | Statistics, settings, backup, reindex with progress |
 | `templates/` | 7 files | Jinja2 templates: base, search, browse, detail, add, stats, settings |
 | `static/` | 3 files | Pico CSS, custom.css, htmx.min.js |
@@ -215,7 +215,7 @@ nssm edit RegKBWeb        # Edit config (GUI)
 
 | Table | Key Columns | Notes |
 |-------|-------------|-------|
-| `documents` | id · hash(UNIQUE) · title · document_type · jurisdiction · version · is_latest · file_path · extracted_path · description · download_date · import_date · superseded_by(FK) | Main document store |
+| `documents` | id · hash(UNIQUE) · title · document_type · jurisdiction · version · is_latest · file_path · extracted_path · extracted_text · description · download_date · import_date · superseded_by(FK) | Main document store |
 | `documents_fts` | title · description · extracted_text | FTS5 virtual, `content='documents'`, porter tokenizer |
 | `import_batches` | id · source_path · started_at · completed_at · total_files · imported · duplicates · errors · status | Audit trail |
 | `import_batch_items` | id · batch_id(FK) · file_path · document_id(FK) · status · error_message | Per-file tracking |
@@ -274,7 +274,7 @@ Indexes: `hash` · `document_type` · `jurisdiction` · `is_latest`. Triggers: `
 | `document_exists` | `(file_hash: str) -> bool` |
 | `add_document` | `(file_hash, title, document_type, jurisdiction, file_path, version?, source_url?, description?, download_date?) -> int` |
 | `get_document` | `(doc_id?: int, file_hash?: str) -> dict?` |
-| `update_document` | `(doc_id: int, **kwargs) -> bool` — allowed: title · document_type · jurisdiction · version · is_latest · source_url · description · extracted_path · superseded_by |
+| `update_document` | `(doc_id: int, **kwargs) -> bool` — allowed: title · document_type · jurisdiction · version · is_latest · source_url · description · extracted_path · extracted_text · superseded_by |
 | `list_documents` | `(document_type?, jurisdiction?, latest_only=True, limit=100, offset=0) -> list[dict]` |
 | `search_fts` | `(query: str, limit=10, latest_only=True) -> list[dict]` |
 | `get_statistics` | `() -> dict` — keys: total_documents · by_type · by_jurisdiction · latest_versions · total_imports |
@@ -491,6 +491,8 @@ No network, no APIs, no ChromaDB, no PDFs in tests.
 | `DocumentDownloader` has no constructor bypass | Must `patch("regkb.downloader.config")` before constructing |
 | FTS5 triggers need file-based SQLite | Use `tmp_path / "test.db"`, not `:memory:` |
 | `normalize_doc_identifier` parses `:YYYY` as part number | `"ISO 13485:2016"` → `"ISO 13485-2016"` (won't match `KNOWN_VERSIONS["ISO 13485"]`) |
+| FastAPI route ordering: `/documents/{id}` catches `/documents/add` | Register `documents.router` before `browse.router` in main.py |
+| FTS5 `content='documents'` requires `extracted_text` column | Column must exist in documents table; importer populates on import |
 
 ## Pre-commit
 
