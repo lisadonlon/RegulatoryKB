@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Compare - RegKB{% endblock %}
+
+{% block content %}
+<h1>Compare Documents</h1>
+
+<form hx-get="/diff/result"
+      hx-target="#diff-results"
+      hx-swap="innerHTML"
+      hx-indicator="#diff-loading">
+    <div class="grid">
+        <label>
+            Document A
+            <select name="doc1" required>
+                <option value="">-- Select document --</option>
+                {% for doc in documents %}
+                <option value="{{ doc.id }}" {% if selected_doc1 == doc.id %}selected{% endif %}>
+                    #{{ doc.id }} — {{ doc.title }} ({{ doc.jurisdiction }})
+                </option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            Document B
+            <select name="doc2" required>
+                <option value="">-- Select document --</option>
+                {% for doc in documents %}
+                <option value="{{ doc.id }}" {% if selected_doc2 == doc.id %}selected{% endif %}>
+                    #{{ doc.id }} — {{ doc.title }} ({{ doc.jurisdiction }})
+                </option>
+                {% endfor %}
+            </select>
+        </label>
+    </div>
+    <div class="grid">
+        <label>
+            Context Lines
+            <input type="number" name="context_lines" value="3" min="0" max="20" style="max-width: 120px;">
+        </label>
+        <div>
+            <button type="submit" style="margin-top: 1.75rem;">Compare</button>
+            <span class="htmx-indicator" id="diff-loading" aria-busy="true">Comparing...</span>
+        </div>
+    </div>
+</form>
+
+<div id="diff-results"></div>
+{% endblock %}

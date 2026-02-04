@@ -1,0 +1,35 @@
+<article>
+    <header>Comparison: {{ result.doc1_title }} vs {{ result.doc2_title }}</header>
+
+    <div class="diff-stats-grid">
+        <div class="diff-stat">
+            <strong>{{ "%.1f" | format(stats.similarity * 100) }}%</strong>
+            <small>Similarity</small>
+        </div>
+        <div class="diff-stat diff-stat-added">
+            <strong>{{ stats.added }}</strong>
+            <small>Added</small>
+        </div>
+        <div class="diff-stat diff-stat-removed">
+            <strong>{{ stats.removed }}</strong>
+            <small>Removed</small>
+        </div>
+        <div class="diff-stat diff-stat-changed">
+            <strong>{{ stats.changed }}</strong>
+            <small>Changed</small>
+        </div>
+        <div class="diff-stat">
+            <strong>{{ stats.unchanged }}</strong>
+            <small>Unchanged</small>
+        </div>
+    </div>
+
+    {% if stats.similarity == 1.0 %}
+    <p>Documents are identical.</p>
+    {% else %}
+    <details open>
+        <summary>Side-by-side diff</summary>
+        <iframe class="diff-iframe" srcdoc="{{ result.html_diff | e }}" sandbox></iframe>
+    </details>
+    {% endif %}
+</article>

@@ -91,3 +91,48 @@ td a[role="button"] {
 .tab-content {
     padding: 1rem 0;
 }
+
+/* Diff stats grid */
+.diff-stats-grid {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.diff-stat {
+    text-align: center;
+    padding: 0.75rem 1.25rem;
+    border: 1px solid var(--pico-muted-border-color);
+    border-radius: var(--pico-border-radius);
+    min-width: 80px;
+}
+
+.diff-stat strong {
+    display: block;
+    font-size: 1.5rem;
+}
+
+.diff-stat small {
+    color: var(--pico-muted-color);
+}
+
+.diff-stat-added {
+    border-color: var(--pico-ins-color);
+}
+
+.diff-stat-removed {
+    border-color: var(--pico-del-color);
+}
+
+.diff-stat-changed {
+    border-color: #f0ad4e;
+}
+
+/* Diff iframe */
+.diff-iframe {
+    width: 100%;
+    min-height: 500px;
+    border: 1px solid var(--pico-muted-border-color);
+    border-radius: var(--pico-border-radius);
+}
