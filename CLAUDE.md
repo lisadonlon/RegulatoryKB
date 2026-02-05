@@ -35,13 +35,14 @@ Medical device regulatory affairs knowledge base. Python 3.9+ · Click CLI · SQ
 
 | File | Lines | Purpose |
 |------|------:|---------|
-| `main.py` | 65 | FastAPI app, session middleware, route registration (documents before browse for /add) |
+| `main.py` | 66 | FastAPI app, session middleware, route registration (documents before browse for /add) |
 | `dependencies.py` | 55 | DI functions (get_db, get_search_engine), flash messages |
 | `routes/search.py` | 125 | Search page with HTMX live results |
 | `routes/browse.py` | 145 | Document list, detail view, PDF download, text view |
 | `routes/documents.py` | 185 | Upload PDF (with validation), import from URL, folder import, metadata edit |
+| `routes/diff.py` | 93 | Document comparison with side-by-side HTML diff |
 | `routes/admin.py` | 120 | Statistics, settings, backup, reindex with progress |
-| `templates/` | 7 files | Jinja2 templates: base, search, browse, detail, add, stats, settings |
+| `templates/` | 9 files | Jinja2 templates: base, search, browse, detail, add, diff, stats, settings + partials |
 | `static/` | 3 files | Pico CSS, custom.css, htmx.min.js |
 
 ### `scripts/regkb/intelligence/` — Monitoring Pipeline
