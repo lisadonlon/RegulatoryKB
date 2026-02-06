@@ -136,3 +136,16 @@ td a[role="button"] {
     border: 1px solid var(--pico-muted-border-color);
     border-radius: var(--pico-border-radius);
 }
+
+/* Version status cards */
+.status-current-card {
+    border-color: var(--pico-ins-color);
+}
+
+.status-outdated-card {
+    border-color: var(--pico-del-color);
+}
+
+.status-unknown-card {
+    border-color: var(--pico-muted-color);
+}

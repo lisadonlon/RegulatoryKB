@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Version Check - RegKB{% endblock %}
+
+{% block content %}
+<h1>Document Version Check</h1>
+
+<div class="diff-stats-grid">
+    <div class="diff-stat">
+        <strong>{{ summary.total }}</strong>
+        <small>Total</small>
+    </div>
+    <div class="diff-stat status-current-card">
+        <strong>{{ summary.current }}</strong>
+        <small>Current</small>
+    </div>
+    <div class="diff-stat status-outdated-card">
+        <strong>{{ summary.outdated }}</strong>
+        <small>Outdated</small>
+    </div>
+    <div class="diff-stat status-unknown-card">
+        <strong>{{ summary.unknown }}</strong>
+        <small>Unknown</small>
+    </div>
+</div>
+
+{% if outdated %}
+<details open>
+    <summary><strong>Outdated Documents ({{ outdated|length }})</strong> — Updates available</summary>
+    <table role="grid">
+        <thead>
+            <tr>
+                <th>Document</th>
+                <th>Jurisdiction</th>
+                <th>Your Version</th>
+                <th>Latest</th>
+                <th>Notes</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for r in outdated %}
+            <tr>
+                <td><a href="/documents/{{ r.doc_id }}">{{ r.title }}</a></td>
+                <td>{{ r.jurisdiction }}</td>
+                <td>{{ r.current_version or 'Unknown' }}</td>
+                <td><strong>{{ r.latest_version }}</strong></td>
+                <td>{{ r.notes }}</td>
+                <td>
+                    {% if r.update_url %}
+                    <a href="{{ r.update_url }}" target="_blank" role="button" class="outline small">Check</a>
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</details>
+{% else %}
+<article class="flash flash-success">No outdated documents found.</article>
+{% endif %}
+
+{% if unknown %}
+<details>
+    <summary><strong>Untracked Documents ({{ unknown|length }})</strong> — Manual verification needed</summary>
+    <p><small>These documents are not in the known versions database. Their version status cannot be automatically verified.</small></p>
+    <table role="grid">
+        <thead>
+            <tr>
+                <th>Document</th>
+                <th>Jurisdiction</th>
+                <th>Version</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for r in unknown %}
+            <tr>
+                <td><a href="/documents/{{ r.doc_id }}">{{ r.title }}</a></td>
+                <td>{{ r.jurisdiction }}</td>
+                <td>{{ r.current_version or 'N/A' }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</details>
+{% endif %}
+
+{% if current %}
+<details>
+    <summary><strong>Current Documents ({{ current|length }})</strong> — Up to date</summary>
+    <table role="grid">
+        <thead>
+            <tr>
+                <th>Document</th>
+                <th>Jurisdiction</th>
+                <th>Version</th>
+                <th>Notes</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for r in current %}
+            <tr>
+                <td><a href="/documents/{{ r.doc_id }}">{{ r.title }}</a></td>
+                <td>{{ r.jurisdiction }}</td>
+                <td>{{ r.current_version or 'N/A' }}</td>
+                <td>{{ r.notes }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</details>
+{% endif %}
+{% endblock %}

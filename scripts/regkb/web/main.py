@@ -56,10 +56,11 @@ async def root():
 # Import and register routes
 # Note: documents must be registered before browse so /documents/add matches
 # before /documents/{doc_id}
-from regkb.web.routes import admin, browse, diff, documents, search
+from regkb.web.routes import admin, browse, diff, documents, search, versions
 
 app.include_router(search.router)
 app.include_router(diff.router)
+app.include_router(versions.router)
 app.include_router(documents.router)  # Must be before browse
 app.include_router(browse.router)
 app.include_router(admin.router, prefix="/admin")
