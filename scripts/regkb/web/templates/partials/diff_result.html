@@ -24,6 +24,13 @@
         </div>
     </div>
 
+    <div class="export-buttons">
+        <small>Export:</small>
+        <a href="/diff/export?doc1={{ result.doc1_id }}&doc2={{ result.doc2_id }}&format=csv" role="button" class="outline small">CSV</a>
+        <a href="/diff/export?doc1={{ result.doc1_id }}&doc2={{ result.doc2_id }}&format=md" role="button" class="outline small">Markdown</a>
+        <a href="/diff/export?doc1={{ result.doc1_id }}&doc2={{ result.doc2_id }}&format=html" role="button" class="outline small">HTML Report</a>
+    </div>
+
     {% if stats.similarity == 1.0 %}
     <p>Documents are identical.</p>
     {% else %}

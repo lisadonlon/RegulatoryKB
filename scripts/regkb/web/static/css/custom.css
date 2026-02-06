@@ -149,3 +149,21 @@ td a[role="button"] {
 .status-unknown-card {
     border-color: var(--pico-muted-color);
 }
+
+/* Export buttons */
+.export-buttons {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin: 1rem 0;
+}
+
+.export-buttons small {
+    color: var(--pico-muted-color);
+    margin-right: 0.5rem;
+}
+
+.export-buttons a[role="button"].small {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.8rem;
+}

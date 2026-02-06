@@ -3,11 +3,16 @@ Document comparison routes.
 """
 
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 from fastapi.templating import Jinja2Templates
 
 from regkb.database import Database
-from regkb.diff import compare_documents
+from regkb.diff import (
+    compare_documents,
+    export_diff_csv,
+    export_diff_html_report,
+    export_diff_markdown,
+)
 from regkb.web.dependencies import get_db, get_flashed_messages
 
 router = APIRouter(tags=["diff"])
@@ -91,3 +96,56 @@ async def diff_result(
     }
 
     return templates.TemplateResponse("partials/diff_result.html", context)
+
+
+@router.get("/diff/export")
+async def diff_export(
+    doc1: int,
+    doc2: int,
+    format: str = "html",
+    context_lines: int = 3,
+    db: Database = Depends(get_db),
+):
+    """Export diff result as CSV, Markdown, or HTML report."""
+    doc1_info = db.get_document(doc_id=doc1)
+    doc2_info = db.get_document(doc_id=doc2)
+
+    if not doc1_info or not doc2_info:
+        return HTMLResponse("<p>Document not found.</p>", status_code=404)
+
+    result = compare_documents(
+        doc1_id=doc1,
+        doc2_id=doc2,
+        doc1_title=doc1_info["title"],
+        doc2_title=doc2_info["title"],
+        context_lines=context_lines,
+        include_html=True,
+    )
+
+    if result is None:
+        return HTMLResponse("<p>Could not compare documents.</p>", status_code=400)
+
+    timestamp = __import__("datetime").datetime.now().strftime("%Y%m%d_%H%M")
+    base_filename = f"diff_{doc1}_vs_{doc2}_{timestamp}"
+
+    if format == "csv":
+        content = export_diff_csv(result)
+        return Response(
+            content=content,
+            media_type="text/csv; charset=utf-8",
+            headers={"Content-Disposition": f'attachment; filename="{base_filename}.csv"'},
+        )
+    elif format == "md":
+        content = export_diff_markdown(result)
+        return Response(
+            content=content,
+            media_type="text/markdown; charset=utf-8",
+            headers={"Content-Disposition": f'attachment; filename="{base_filename}.md"'},
+        )
+    else:  # html
+        content = export_diff_html_report(result)
+        return Response(
+            content=content,
+            media_type="text/html; charset=utf-8",
+            headers={"Content-Disposition": f'attachment; filename="{base_filename}.html"'},
+        )
