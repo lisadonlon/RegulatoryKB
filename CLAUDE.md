@@ -24,7 +24,7 @@ Medical device regulatory affairs knowledge base. Python 3.9+ · Click CLI · SQ
 | `importer.py` | 415 | Import workflow: dedup, validation, text extraction, batch audit |
 | `extraction.py` | 303 | PDF→Markdown via PyMuPDF; OCR fallback via pytesseract |
 | `downloader.py` | 252 | HTTP document fetcher with URL validation and filename sanitization |
-| `diff.py` | 210 | Document comparison: unified diff, HTML side-by-side, similarity stats |
+| `diff.py` | 310 | Document comparison: unified diff, HTML side-by-side, similarity stats, export (CSV/MD/HTML) |
 | `version_tracker.py` | 448 | Version checking against `KNOWN_VERSIONS` dict; current/outdated/unknown |
 | `version_diff.py` | 296 | Auto-detect prior versions of imported docs and generate diffs |
 | `gap_analysis.py` | 324 | Compare KB against reference checklist; identifier matching + scoring |
@@ -35,14 +35,17 @@ Medical device regulatory affairs knowledge base. Python 3.9+ · Click CLI · SQ
 
 | File | Lines | Purpose |
 |------|------:|---------|
-| `main.py` | 66 | FastAPI app, session middleware, route registration (documents before browse for /add) |
+| `main.py` | 69 | FastAPI app, session middleware, route registration (documents before browse for /add) |
 | `dependencies.py` | 55 | DI functions (get_db, get_search_engine), flash messages |
 | `routes/search.py` | 125 | Search page with HTMX live results |
 | `routes/browse.py` | 145 | Document list, detail view, PDF download, text view |
 | `routes/documents.py` | 185 | Upload PDF (with validation), import from URL, folder import, metadata edit |
-| `routes/diff.py` | 93 | Document comparison with side-by-side HTML diff |
-| `routes/admin.py` | 120 | Statistics, settings, backup, reindex with progress |
-| `templates/` | 9 files | Jinja2 templates: base, search, browse, detail, add, diff, stats, settings + partials |
+| `routes/diff.py` | 110 | Document comparison with side-by-side HTML diff, export (CSV/MD/HTML) |
+| `routes/versions.py` | 47 | Version status dashboard (current/outdated/unknown) |
+| `routes/gaps.py` | 140 | Gap analysis dashboard with jurisdiction drill-down, CSV export |
+| `routes/intel.py` | 273 | Intelligence pipeline: pending queue, approve/reject, digests, fetch/sync |
+| `routes/admin.py` | 288 | Statistics, settings, backup, reindex, batch operations (re-extract, metadata) |
+| `templates/` | 18 files | Jinja2: base, search, browse, detail, add, diff, versions, gaps, intel, batch, stats, settings + partials |
 | `static/` | 3 files | Pico CSS, custom.css, htmx.min.js |
 
 ### `scripts/regkb/intelligence/` — Monitoring Pipeline
@@ -331,6 +334,9 @@ Indexes: `hash` · `document_type` · `jurisdiction` · `is_latest`. Triggers: `
 | `compute_diff_stats` | `(lines1, lines2: list[str]) -> DiffStats` |
 | `generate_unified_diff` | `(lines1, lines2, label1, label2, context_lines=3) -> str` |
 | `generate_html_diff` | `(lines1, lines2, label1, label2, context_lines=3) -> str` |
+| `export_diff_csv` | `(result: DiffResult) -> str` — CSV with metadata, stats, change summary |
+| `export_diff_markdown` | `(result: DiffResult) -> str` — Markdown report with action items |
+| `export_diff_html_report` | `(result: DiffResult) -> str` — Self-contained HTML with embedded CSS |
 
 ### version_tracker.py — Pure functions
 
@@ -417,6 +423,45 @@ Indexes: `hash` · `document_type` · `jurisdiction` · `is_latest`. Triggers: `
 | `regkb intel cache` | Manage cache |
 | `regkb intel setup` | Setup scheduler/email/IMAP |
 | `regkb intel schedule-status` | Show scheduled jobs |
+
+## Web UI Routes
+
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/` | GET | Redirect to /search |
+| `/search` | GET | Search page with live HTMX results |
+| `/documents` | GET | Browse document list with filters |
+| `/documents/{id}` | GET | Document detail view |
+| `/documents/{id}/download` | GET | Download original PDF |
+| `/documents/{id}/text` | GET | View extracted text |
+| `/documents/{id}/edit` | GET/POST | Edit document metadata |
+| `/documents/add` | GET/POST | Upload PDF or import from URL |
+| `/documents/import-folder` | POST | Batch import from folder |
+| `/diff` | GET | Document comparison page |
+| `/diff/result` | GET | HTMX partial with diff results |
+| `/diff/export` | GET | Export diff as CSV/MD/HTML (format param) |
+| `/versions` | GET | Version status dashboard |
+| `/gaps` | GET | Gap analysis coverage dashboard |
+| `/gaps/{jurisdiction}` | GET | Drill-down by jurisdiction |
+| `/gaps/export/csv` | GET | Export gap report as CSV |
+| `/intel` | GET | Intelligence pipeline dashboard |
+| `/intel/pending` | GET | Pending downloads queue |
+| `/intel/pending/approve` | POST | Approve selected entries |
+| `/intel/pending/reject` | POST | Reject selected entries |
+| `/intel/pending/approve-all` | POST | Approve all pending |
+| `/intel/digests` | GET | Digest history |
+| `/intel/fetch` | POST | Trigger newsletter fetch |
+| `/intel/sync` | POST | Run full sync pipeline |
+| `/intel/status` | GET | HTMX partial for pipeline status |
+| `/admin/stats` | GET | Statistics dashboard |
+| `/admin/settings` | GET | Settings and paths |
+| `/admin/backup` | POST | Create database backup |
+| `/admin/reindex` | POST | Start search reindex |
+| `/admin/reindex/status` | GET | Reindex progress (JSON) |
+| `/admin/batch` | GET | Batch operations page |
+| `/admin/batch/reextract` | POST | Re-extract text for selected docs |
+| `/admin/batch/update-metadata` | POST | Bulk update type/jurisdiction |
+| `/admin/batch/status` | GET | Batch operation progress (JSON) |
 
 ## Config Reference
 
