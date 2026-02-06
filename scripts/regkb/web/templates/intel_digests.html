@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Digest History - RegKB{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ul>
+        <li><a href="/intel">Intelligence</a></li>
+        <li>Digest History</li>
+    </ul>
+</nav>
+
+<h1>Digest History</h1>
+
+<div class="diff-stats-grid">
+    <div class="diff-stat">
+        <strong>{{ digest_stats.get('total_digests', 0) }}</strong>
+        <small>Digests Sent</small>
+    </div>
+    <div class="diff-stat">
+        <strong>{{ digest_stats.get('total_entries', 0) }}</strong>
+        <small>Total Entries</small>
+    </div>
+    <div class="diff-stat status-current-card">
+        <strong>{{ digest_stats.get('by_status', {}).get('downloaded', 0) }}</strong>
+        <small>Downloaded</small>
+    </div>
+    <div class="diff-stat">
+        <strong>{{ digest_stats.get('by_status', {}).get('pending', 0) }}</strong>
+        <small>Pending</small>
+    </div>
+</div>
+
+{% if recent_entries %}
+<table role="grid">
+    <thead>
+        <tr>
+            <th>Entry ID</th>
+            <th>Title</th>
+            <th>Agency</th>
+            <th>Status</th>
+            <th>KB Doc</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for entry in recent_entries %}
+        <tr>
+            <td><small>{{ entry.entry_id }}</small></td>
+            <td>
+                {% if entry.link %}
+                <a href="{{ entry.link }}" target="_blank" title="{{ entry.title }}">
+                    {{ entry.title[:50] }}{% if entry.title|length > 50 %}...{% endif %}
+                </a>
+                {% else %}
+                {{ entry.title[:50] }}{% if entry.title|length > 50 %}...{% endif %}
+                {% endif %}
+            </td>
+            <td>{{ entry.agency }}</td>
+            <td>
+                {% if entry.download_status == 'downloaded' %}
+                    <span class="text-success">Downloaded</span>
+                {% elif entry.download_status == 'failed' %}
+                    <span class="text-danger" title="{{ entry.error_message }}">Failed</span>
+                {% elif entry.download_status == 'manual_needed' %}
+                    <span class="text-warning">Manual</span>
+                {% else %}
+                    {{ entry.download_status }}
+                {% endif %}
+            </td>
+            <td>
+                {% if entry.kb_doc_id %}
+                <a href="/documents/{{ entry.kb_doc_id }}">#{{ entry.kb_doc_id }}</a>
+                {% else %}
+                —
+                {% endif %}
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No digest entries yet.</p>
+{% endif %}
+{% endblock %}

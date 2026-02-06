@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}Intelligence - RegKB{% endblock %}
+
+{% block content %}
+<h1>Intelligence Pipeline</h1>
+
+<div class="grid">
+    <article>
+        <header>Pending Queue</header>
+        <div class="diff-stats-grid">
+            <div class="diff-stat">
+                <strong>{{ pending_stats.get('pending', 0) }}</strong>
+                <small>Pending</small>
+            </div>
+            <div class="diff-stat status-current-card">
+                <strong>{{ pending_stats.get('approved', 0) }}</strong>
+                <small>Approved</small>
+            </div>
+            <div class="diff-stat">
+                <strong>{{ pending_stats.get('downloaded', 0) }}</strong>
+                <small>Downloaded</small>
+            </div>
+        </div>
+        <a href="/intel/pending" role="button" class="outline">Manage Queue</a>
+    </article>
+
+    <article>
+        <header>Digest History</header>
+        <div class="diff-stats-grid">
+            <div class="diff-stat">
+                <strong>{{ digest_stats.get('total_digests', 0) }}</strong>
+                <small>Digests Sent</small>
+            </div>
+            <div class="diff-stat">
+                <strong>{{ digest_stats.get('total_entries', 0) }}</strong>
+                <small>Entries Tracked</small>
+            </div>
+        </div>
+        <a href="/intel/digests" role="button" class="outline">View History</a>
+    </article>
+</div>
+
+<article>
+    <header>Quick Actions</header>
+    <div class="grid">
+        <form method="post" action="/intel/fetch" style="margin: 0;">
+            <button type="submit">Fetch Updates</button>
+        </form>
+        <form method="post" action="/intel/sync" style="margin: 0;">
+            <button type="submit" class="secondary">Full Sync</button>
+        </form>
+    </div>
+    <div id="pipeline-status" hx-get="/intel/status" hx-trigger="every 2s" style="margin-top: 1rem;">
+        <span>Ready</span>
+    </div>
+</article>
+
+<article>
+    <header>Scheduler Status</header>
+    <table>
+        <tr>
+            <th>Weekly Digest</th>
+            <td>
+                {% if scheduler.last_weekly_run %}
+                    Last: {{ scheduler.last_weekly_run.strftime('%Y-%m-%d %H:%M') }}
+                {% else %}
+                    Never run
+                {% endif %}
+            </td>
+            <td>
+                {% if scheduler.should_run_weekly() %}
+                    <mark>Due</mark>
+                {% else %}
+                    Scheduled
+                {% endif %}
+            </td>
+        </tr>
+        <tr>
+            <th>Daily Alerts</th>
+            <td>
+                {% if scheduler.last_daily_run %}
+                    Last: {{ scheduler.last_daily_run.strftime('%Y-%m-%d %H:%M') }}
+                {% else %}
+                    Never run
+                {% endif %}
+            </td>
+            <td>
+                {% if scheduler.should_run_daily() %}
+                    <mark>Due</mark>
+                {% else %}
+                    Scheduled
+                {% endif %}
+            </td>
+        </tr>
+    </table>
+</article>
+
+{% if pending_items %}
+<article>
+    <header>Recent Pending Items</header>
+    <table role="grid">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Agency</th>
+                <th>Score</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for item in pending_items %}
+            <tr>
+                <td>{{ item.title[:60] }}{% if item.title|length > 60 %}...{% endif %}</td>
+                <td>{{ item.agency }}</td>
+                <td>{{ "%.2f" | format(item.relevance_score) }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    <a href="/intel/pending">View all pending →</a>
+</article>
+{% endif %}
+{% endblock %}

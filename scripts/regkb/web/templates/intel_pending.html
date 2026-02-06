@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Pending Downloads - RegKB{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ul>
+        <li><a href="/intel">Intelligence</a></li>
+        <li>Pending Downloads</li>
+    </ul>
+</nav>
+
+<h1>Pending Downloads</h1>
+
+<div class="diff-stats-grid">
+    <div class="diff-stat {% if current_status == 'pending' %}status-current-card{% endif %}">
+        <a href="/intel/pending?status=pending" style="text-decoration: none; color: inherit;">
+            <strong>{{ pending_stats.get('pending', 0) }}</strong>
+            <small>Pending</small>
+        </a>
+    </div>
+    <div class="diff-stat {% if current_status == 'approved' %}status-current-card{% endif %}">
+        <a href="/intel/pending?status=approved" style="text-decoration: none; color: inherit;">
+            <strong>{{ pending_stats.get('approved', 0) }}</strong>
+            <small>Approved</small>
+        </a>
+    </div>
+    <div class="diff-stat {% if current_status == 'downloaded' %}status-current-card{% endif %}">
+        <a href="/intel/pending?status=downloaded" style="text-decoration: none; color: inherit;">
+            <strong>{{ pending_stats.get('downloaded', 0) }}</strong>
+            <small>Downloaded</small>
+        </a>
+    </div>
+    <div class="diff-stat {% if current_status == 'rejected' %}status-outdated-card{% endif %}">
+        <a href="/intel/pending?status=rejected" style="text-decoration: none; color: inherit;">
+            <strong>{{ pending_stats.get('rejected', 0) }}</strong>
+            <small>Rejected</small>
+        </a>
+    </div>
+</div>
+
+{% if pending_items %}
+<form method="post">
+    {% if current_status == 'pending' %}
+    <div class="export-buttons">
+        <button type="submit" formaction="/intel/pending/approve">Approve Selected</button>
+        <button type="submit" formaction="/intel/pending/reject" class="secondary">Reject Selected</button>
+        <button type="submit" formaction="/intel/pending/approve-all" class="outline">Approve All</button>
+    </div>
+    {% endif %}
+
+    <table role="grid">
+        <thead>
+            <tr>
+                {% if current_status == 'pending' %}<th><input type="checkbox" id="select-all"></th>{% endif %}
+                <th>Title</th>
+                <th>Agency</th>
+                <th>Category</th>
+                <th>Score</th>
+                <th>Keywords</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for item in pending_items %}
+            <tr>
+                {% if current_status == 'pending' %}
+                <td><input type="checkbox" name="ids" value="{{ item.id }}"></td>
+                {% endif %}
+                <td>
+                    <a href="{{ item.url }}" target="_blank" title="{{ item.title }}">
+                        {{ item.title[:50] }}{% if item.title|length > 50 %}...{% endif %}
+                    </a>
+                </td>
+                <td>{{ item.agency }}</td>
+                <td>{{ item.category }}</td>
+                <td>{{ "%.2f" | format(item.relevance_score) }}</td>
+                <td><small>{{ item.keywords[:3] | join(', ') }}</small></td>
+                <td>{{ item.date }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</form>
+
+<script>
+document.getElementById('select-all')?.addEventListener('change', function() {
+    document.querySelectorAll('input[name="ids"]').forEach(cb => cb.checked = this.checked);
+});
+</script>
+{% else %}
+<p>No items with status "{{ current_status }}".</p>
+{% endif %}
+{% endblock %}
