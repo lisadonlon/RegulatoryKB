@@ -23,6 +23,11 @@
                     {% if reindex_status.running %}Reindexing...{% else %}Reindex All{% endif %}
                 </button>
             </form>
+        </div>
+        <div>
+            <h4>Batch Operations</h4>
+            <p>Re-extract text, update metadata for multiple documents.</p>
+            <a href="/admin/batch" role="button" class="outline">Open Batch Tools</a>
             {% if reindex_status.running %}
             <p hx-get="/admin/reindex/status" hx-trigger="every 2s" hx-swap="innerHTML">
                 Progress: {{ reindex_status.progress }} / {{ reindex_status.total }}

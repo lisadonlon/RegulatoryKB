@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}Batch Operations - RegKB{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ul>
+        <li><a href="/admin/settings">Settings</a></li>
+        <li>Batch Operations</li>
+    </ul>
+</nav>
+
+<h1>Batch Operations</h1>
+
+{% if batch_status.running %}
+<article>
+    <header>Operation in Progress</header>
+    <div id="batch-progress" hx-get="/admin/batch/status" hx-trigger="every 1s" hx-swap="innerHTML">
+        <span aria-busy="true">{{ batch_status.operation }}: {{ batch_status.progress }} / {{ batch_status.total }}</span>
+    </div>
+</article>
+{% elif batch_status.operation %}
+<article class="flash flash-success">
+    {{ batch_status.operation }}
+</article>
+{% endif %}
+
+<form hx-get="/admin/batch" hx-target="body" hx-push-url="true" method="get" action="/admin/batch">
+    <div class="grid">
+        <label>
+            Filter by Type
+            <select name="type">
+                <option value="">All Types</option>
+                {% for t in document_types %}
+                <option value="{{ t }}" {% if selected_type == t %}selected{% endif %}>{{ t }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            Filter by Jurisdiction
+            <select name="jurisdiction">
+                <option value="">All Jurisdictions</option>
+                {% for j in jurisdictions %}
+                <option value="{{ j }}" {% if selected_jurisdiction == j %}selected{% endif %}>{{ j }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <button type="submit" style="margin-top: 1.75rem;">Filter</button>
+    </div>
+</form>
+
+{% if documents %}
+<form method="post">
+    <details open>
+        <summary><strong>Select Documents</strong> ({{ documents|length }} shown)</summary>
+
+        <div style="margin: 1rem 0;">
+            <label>
+                <input type="checkbox" id="select-all">
+                Select All
+            </label>
+        </div>
+
+        <div style="max-height: 400px; overflow-y: auto; border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); padding: 1rem;">
+            {% for doc in documents %}
+            <label style="display: block; margin: 0.5rem 0;">
+                <input type="checkbox" name="doc_ids" value="{{ doc.id }}">
+                <small>#{{ doc.id }}</small> {{ doc.title[:60] }}{% if doc.title|length > 60 %}...{% endif %}
+                <small>({{ doc.jurisdiction }})</small>
+            </label>
+            {% endfor %}
+        </div>
+    </details>
+
+    <article>
+        <header>Re-extract Text</header>
+        <p>Re-run text extraction (PDF → Markdown) for selected documents.</p>
+        <label>
+            <input type="checkbox" name="force_ocr">
+            Force OCR (slower, use for scanned documents)
+        </label>
+        <button type="submit" formaction="/admin/batch/reextract">Re-extract Selected</button>
+    </article>
+
+    <article>
+        <header>Update Metadata</header>
+        <p>Change document type or jurisdiction for selected documents.</p>
+        <div class="grid">
+            <label>
+                New Type
+                <select name="new_type">
+                    <option value="">— No change —</option>
+                    {% for t in document_types %}
+                    <option value="{{ t }}">{{ t }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>
+                New Jurisdiction
+                <select name="new_jurisdiction">
+                    <option value="">— No change —</option>
+                    {% for j in jurisdictions %}
+                    <option value="{{ j }}">{{ j }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+        </div>
+        <button type="submit" formaction="/admin/batch/update-metadata">Update Selected</button>
+    </article>
+</form>
+
+<script>
+document.getElementById('select-all')?.addEventListener('change', function() {
+    document.querySelectorAll('input[name="doc_ids"]').forEach(cb => cb.checked = this.checked);
+});
+</script>
+{% else %}
+<p>No documents found matching the filters.</p>
+{% endif %}
+{% endblock %}
