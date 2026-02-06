@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Gap Analysis - RegKB{% endblock %}
+
+{% block content %}
+<h1>Gap Analysis</h1>
+<p>Coverage against regulatory reference checklist</p>
+
+<div class="diff-stats-grid">
+    <div class="diff-stat coverage-gauge" style="min-width: 120px;">
+        <strong class="{% if summary.overall_coverage >= 80 %}text-success{% elif summary.overall_coverage >= 50 %}text-warning{% else %}text-danger{% endif %}">
+            {{ summary.overall_coverage }}%
+        </strong>
+        <small>Coverage</small>
+    </div>
+    <div class="diff-stat">
+        <strong>{{ summary.total_reference }}</strong>
+        <small>Reference Docs</small>
+    </div>
+    <div class="diff-stat status-current-card">
+        <strong>{{ summary.total_matched }}</strong>
+        <small>Matched</small>
+    </div>
+    <div class="diff-stat status-outdated-card">
+        <strong>{{ summary.total_missing }}</strong>
+        <small>Missing</small>
+    </div>
+    <div class="diff-stat" style="border-color: #ff4136;">
+        <strong>{{ summary.mandatory_missing }}</strong>
+        <small>Mandatory Missing</small>
+    </div>
+</div>
+
+<div class="export-buttons">
+    <a href="/gaps/export/csv" role="button" class="outline small">Export CSV</a>
+</div>
+
+<h2>Coverage by Jurisdiction</h2>
+<table role="grid">
+    <thead>
+        <tr>
+            <th>Jurisdiction</th>
+            <th>Coverage</th>
+            <th>Matched</th>
+            <th>Missing</th>
+            <th>Mandatory Missing</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for jur in jurisdictions %}
+        <tr>
+            <td><strong>{{ jur.name }}</strong></td>
+            <td>
+                <div class="coverage-bar-container">
+                    <div class="coverage-bar-fill {% if jur.coverage >= 80 %}bg-success{% elif jur.coverage >= 50 %}bg-warning{% else %}bg-danger{% endif %}" style="width: {{ jur.coverage }}%;">
+                        {{ jur.coverage }}%
+                    </div>
+                </div>
+            </td>
+            <td>{{ jur.matched }} / {{ jur.total }}</td>
+            <td>{{ jur.missing }}</td>
+            <td>{% if jur.mandatory_missing > 0 %}<strong style="color: #ff4136;">{{ jur.mandatory_missing }}</strong>{% else %}0{% endif %}</td>
+            <td>
+                <a href="/gaps/{{ jur.name }}" role="button" class="outline small">Details</a>
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

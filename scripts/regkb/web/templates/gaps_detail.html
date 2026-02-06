@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}{{ jurisdiction }} Gap Analysis - RegKB{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ul>
+        <li><a href="/gaps">Gap Analysis</a></li>
+        <li>{{ jurisdiction }}</li>
+    </ul>
+</nav>
+
+<h1>{{ jurisdiction }} Coverage</h1>
+
+<div class="diff-stats-grid">
+    <div class="diff-stat coverage-gauge">
+        <strong class="{% if jur_stats.coverage >= 80 %}text-success{% elif jur_stats.coverage >= 50 %}text-warning{% else %}text-danger{% endif %}">
+            {{ jur_stats.coverage }}%
+        </strong>
+        <small>Coverage</small>
+    </div>
+    <div class="diff-stat status-current-card">
+        <strong>{{ jur_stats.matched }}</strong>
+        <small>Matched</small>
+    </div>
+    <div class="diff-stat status-outdated-card">
+        <strong>{{ jur_stats.missing }}</strong>
+        <small>Missing</small>
+    </div>
+    <div class="diff-stat" style="border-color: #ff4136;">
+        <strong>{{ jur_stats.mandatory_missing }}</strong>
+        <small>Mandatory Missing</small>
+    </div>
+</div>
+
+{% for category, docs in by_category.items() %}
+<details {% if docs.missing %}open{% endif %}>
+    <summary>
+        <strong>{{ category }}</strong>
+        — {{ docs.matched|length }} matched, {{ docs.missing|length }} missing
+    </summary>
+
+    {% if docs.missing %}
+    <h4>Missing Documents</h4>
+    <table role="grid">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Description</th>
+                <th>Mandatory</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for m in docs.missing %}
+            <tr>
+                <td><small>{{ m.ref_id }}</small></td>
+                <td>{{ m.ref_title }}</td>
+                <td><small>{{ m.ref_description }}</small></td>
+                <td>{% if m.mandatory %}<mark>Yes</mark>{% else %}No{% endif %}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    {% if docs.matched %}
+    <h4>Matched Documents</h4>
+    <table role="grid">
+        <thead>
+            <tr>
+                <th>Reference</th>
+                <th>KB Document</th>
+                <th>Confidence</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for m in docs.matched %}
+            <tr>
+                <td>{{ m.ref_title }}</td>
+                <td><a href="/documents/{{ m.kb_doc_id }}">{{ m.kb_doc_title }}</a></td>
+                <td>{{ "%.0f" | format(m.match_confidence * 100) }}%</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+</details>
+{% endfor %}
+{% endblock %}
