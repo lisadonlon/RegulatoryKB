@@ -565,6 +565,7 @@ class Emailer:
         self,
         alerts: list[tuple[FilteredEntry, Optional[Summary]]],
         recipients: Optional[list[str]] = None,
+        skip_dedup: bool = False,
     ) -> EmailResult:
         """
         Send a daily alert email for high-priority items.
@@ -572,12 +573,38 @@ class Emailer:
         Args:
             alerts: List of high-priority (FilteredEntry, Summary) tuples.
             recipients: Optional override for recipients.
+            skip_dedup: If True, skip deduplication check (send all alerts).
 
         Returns:
             EmailResult with send status.
         """
         if not alerts:
             return EmailResult(success=False, error="No alerts to send")
+
+        # Filter out already-sent alerts (unless skipped)
+        from .digest_tracker import digest_tracker
+
+        if not skip_dedup:
+            entries_only = [entry for entry, _ in alerts]
+            unsent_entries = digest_tracker.filter_unsent_alerts(entries_only)
+
+            if not unsent_entries:
+                return EmailResult(
+                    success=True,
+                    recipients_sent=0,
+                    error="All alerts already sent previously",
+                )
+
+            # Rebuild alerts list with only unsent entries
+            unsent_set = {id(e) for e in unsent_entries}
+            alerts = [(entry, summary) for entry, summary in alerts if id(entry) in unsent_set]
+
+            if not alerts:
+                return EmailResult(
+                    success=True,
+                    recipients_sent=0,
+                    error="All alerts already sent previously",
+                )
 
         # Generate alerts content
         alerts_content = ""
@@ -605,7 +632,14 @@ class Emailer:
         recipients = recipients or self.config.recipients
         msg = self._create_message(subject, html, plain, recipients)
 
-        return self._send_email(msg, recipients)
+        result = self._send_email(msg, recipients)
+
+        # Record sent alerts for deduplication (only if send was successful)
+        if result.success and not skip_dedup:
+            entries_only = [entry for entry, _ in alerts]
+            digest_tracker.record_sent_alerts(entries_only, alert_type="daily")
+
+        return result
 
     def send_monthly_digest(
         self,

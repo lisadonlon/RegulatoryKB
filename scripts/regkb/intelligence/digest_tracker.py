@@ -103,6 +103,21 @@ class DigestTracker:
                 CREATE INDEX IF NOT EXISTS idx_entry_hash ON digest_entries(entry_hash)
             """)
 
+            # Table for tracking daily alert entries (deduplication)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS sent_alerts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    entry_hash TEXT NOT NULL UNIQUE,
+                    title TEXT NOT NULL,
+                    agency TEXT,
+                    sent_at TEXT NOT NULL,
+                    alert_type TEXT DEFAULT 'daily'
+                )
+            """)
+            conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_sent_alerts_hash ON sent_alerts(entry_hash)
+            """)
+
             conn.commit()
 
     def _generate_entry_hash(self, title: str, link: Optional[str]) -> str:
@@ -445,7 +460,96 @@ class DigestTracker:
             row = cursor.fetchone()
             stats["last_digest_date"] = row[0] if row else None
 
+            # Add sent alerts count
+            cursor = conn.execute("SELECT COUNT(*) FROM sent_alerts")
+            stats["total_sent_alerts"] = cursor.fetchone()[0]
+
             return stats
+
+    def was_alert_sent(self, title: str, link: Optional[str]) -> bool:
+        """
+        Check if an entry was already sent as a daily alert.
+
+        Args:
+            title: Entry title.
+            link: Entry link (optional).
+
+        Returns:
+            True if this entry was already sent as an alert.
+        """
+        entry_hash = self._generate_entry_hash(title, link)
+
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute(
+                "SELECT 1 FROM sent_alerts WHERE entry_hash = ?",
+                (entry_hash,),
+            )
+            return cursor.fetchone() is not None
+
+    def record_sent_alerts(
+        self,
+        entries: list[FilteredEntry],
+        alert_type: str = "daily",
+    ) -> int:
+        """
+        Record entries that were sent as alerts.
+
+        Args:
+            entries: List of FilteredEntry objects that were sent.
+            alert_type: Type of alert (daily, critical, etc.).
+
+        Returns:
+            Number of entries recorded (excludes duplicates).
+        """
+        now = datetime.now().isoformat()
+        recorded = 0
+
+        with sqlite3.connect(self.db_path) as conn:
+            for filtered_entry in entries:
+                entry = filtered_entry.entry
+                entry_hash = self._generate_entry_hash(entry.title, entry.link)
+
+                try:
+                    conn.execute(
+                        """
+                        INSERT INTO sent_alerts (entry_hash, title, agency, sent_at, alert_type)
+                        VALUES (?, ?, ?, ?, ?)
+                        """,
+                        (entry_hash, entry.title, entry.agency, now, alert_type),
+                    )
+                    recorded += 1
+                except sqlite3.IntegrityError:
+                    # Already exists (duplicate hash)
+                    pass
+
+            conn.commit()
+
+        logger.info(f"Recorded {recorded} sent alerts (type: {alert_type})")
+        return recorded
+
+    def filter_unsent_alerts(self, entries: list[FilteredEntry]) -> list[FilteredEntry]:
+        """
+        Filter out entries that have already been sent as alerts.
+
+        Args:
+            entries: List of FilteredEntry objects to filter.
+
+        Returns:
+            List of entries that have NOT been sent yet.
+        """
+        unsent = []
+
+        for entry in entries:
+            if not self.was_alert_sent(entry.entry.title, entry.entry.link):
+                unsent.append(entry)
+
+        if len(entries) > len(unsent):
+            logger.info(
+                f"Filtered out {len(entries) - len(unsent)} already-sent alerts "
+                f"({len(unsent)} remaining)"
+            )
+
+        return unsent
 
 
 # Global tracker instance
