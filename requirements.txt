@@ -35,6 +35,9 @@ colorlog>=6.7.0
 anthropic>=0.18.0  # Claude API for LLM summaries (optional)
 python-dotenv>=1.0.0  # Load .env files
 
+# Windows VC++ runtime (x64 DLLs for ARM64 Prism emulation)
+msvc-runtime>=14.0.0; sys_platform == 'win32'
+
 # Development dependencies
 pytest>=7.4.0
 pytest-cov>=4.1.0

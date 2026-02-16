@@ -39,6 +39,7 @@ dependencies = [
     "tqdm>=4.66.0",
     "python-dateutil>=2.8.0",
     "colorlog>=6.7.0",
+    "msvc-runtime>=14.0.0; sys_platform == 'win32'",
 ]
 
 [project.optional-dependencies]
