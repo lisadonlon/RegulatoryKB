@@ -5,13 +5,12 @@ Handles extracting text from PDF documents and converting to Markdown format.
 Supports OCR fallback for scanned PDFs via PyTesseract.
 """
 
-import io
 import logging
 import re
 from pathlib import Path
 from typing import Optional
 
-import fitz  # PyMuPDF
+import pdfplumber
 
 from .config import config
 
@@ -101,41 +100,42 @@ class TextExtractor:
         ocr_enabled = config.get("ocr.enabled", True)
         min_text_length = config.get("ocr.min_text_length", 50)
 
-        doc = fitz.open(pdf_path)
         text_parts = []
         ocr_page_count = 0
 
-        for page_num, page in enumerate(doc, 1):
-            page_text = page.get_text("text")
+        with pdfplumber.open(pdf_path) as pdf:
+            for page_num, page in enumerate(pdf.pages, 1):
+                page_text = page.extract_text() or ""
 
-            use_ocr = False
-            if force_ocr:
-                use_ocr = True
-            elif ocr_enabled and len(page_text.strip()) < min_text_length:
-                use_ocr = True
+                use_ocr = False
+                if force_ocr:
+                    use_ocr = True
+                elif ocr_enabled and len(page_text.strip()) < min_text_length:
+                    use_ocr = True
 
-            if use_ocr:
-                ocr_text = self._ocr_page(page)
-                if ocr_text and len(ocr_text.strip()) > len(page_text.strip()):
-                    page_text = ocr_text
-                    ocr_page_count += 1
+                if use_ocr:
+                    ocr_text = self._ocr_page(page)
+                    if ocr_text and len(ocr_text.strip()) > len(page_text.strip()):
+                        page_text = ocr_text
+                        ocr_page_count += 1
 
-            if page_text.strip():
-                text_parts.append(f"<!-- Page {page_num} -->\n{page_text}")
-
-        doc.close()
+                if page_text.strip():
+                    text_parts.append(f"<!-- Page {page_num} -->\n{page_text}")
 
         if ocr_page_count > 0:
             logger.info(f"OCR applied to {ocr_page_count} page(s) in {pdf_path.name}")
 
         return "\n\n".join(text_parts)
 
-    def _ocr_page(self, page: fitz.Page) -> Optional[str]:
+    def _ocr_page(self, page: pdfplumber.pdf.Page) -> Optional[str]:
         """
         Render a PDF page to an image and OCR it.
 
+        Uses pypdfium2 (bundled with pdfplumber) to render the page, then
+        runs pytesseract OCR on the resulting image.
+
         Args:
-            page: A PyMuPDF page object.
+            page: A pdfplumber page object.
 
         Returns:
             OCR'd text or None if OCR is not available.
@@ -145,18 +145,12 @@ class TextExtractor:
 
         try:
             import pytesseract
-            from PIL import Image
 
             dpi = config.get("ocr.dpi", 300)
             language = config.get("ocr.language", "eng")
 
-            # Render page at configured DPI
-            zoom = dpi / 72  # 72 is the default PDF DPI
-            matrix = fitz.Matrix(zoom, zoom)
-            pixmap = page.get_pixmap(matrix=matrix)
-
-            # Convert to PIL Image
-            img = Image.open(io.BytesIO(pixmap.tobytes("png")))
+            # Render page to PIL Image via pdfplumber (uses pypdfium2 internally)
+            img = page.to_image(resolution=dpi).original
 
             # Run OCR
             text = pytesseract.image_to_string(img, lang=language)

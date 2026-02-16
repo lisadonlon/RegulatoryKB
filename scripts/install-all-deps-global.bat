@@ -15,7 +15,7 @@ echo This may take a minute...
 C:\Python313\python.exe -m pip install --target "C:\Python313\Lib\site-packages" ^
     pyyaml ^
     click ^
-    pymupdf ^
+    pdfplumber ^
     sentence-transformers ^
     chromadb ^
     requests ^

@@ -12,6 +12,7 @@ Medical device regulatory affairs knowledge base. Python 3.9+ · Click CLI · SQ
 | `.pre-commit-config.yaml` | 16 | Ruff + format + whitespace + YAML + large-file hooks |
 | `setup.py` | 11 | Shim for `pip install -e .` |
 | `config/config.yaml` | 306 | Runtime config: paths, doc types, jurisdictions, OCR, intelligence |
+| `REGULATORY_CONTEXT.md` | 85 | Domain focus: medical devices, filtering rules, exclusions |
 
 ### `scripts/regkb/` — Core Package
 
@@ -22,7 +23,7 @@ Medical device regulatory affairs knowledge base. Python 3.9+ · Click CLI · SQ
 | `database.py` | 485 | SQLite manager with FTS5 full-text search, CRUD, import batch tracking |
 | `search.py` | 313 | Dual search: SQLite FTS5 + ChromaDB semantic vector search |
 | `importer.py` | 415 | Import workflow: dedup, validation, text extraction, batch audit |
-| `extraction.py` | 303 | PDF→Markdown via PyMuPDF; OCR fallback via pytesseract |
+| `extraction.py` | 295 | PDF→Markdown via pdfplumber; OCR fallback via pytesseract |
 | `downloader.py` | 252 | HTTP document fetcher with URL validation and filename sanitization |
 | `diff.py` | 310 | Document comparison: unified diff, HTML side-by-side, similarity stats, export (CSV/MD/HTML) |
 | `version_tracker.py` | 448 | Version checking against `KNOWN_VERSIONS` dict; current/outdated/unknown |

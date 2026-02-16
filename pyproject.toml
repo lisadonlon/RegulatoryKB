@@ -30,7 +30,7 @@ keywords = ["regulatory", "documents", "knowledge-base", "search", "pdf"]
 
 dependencies = [
     "click>=8.1.0",
-    "pymupdf>=1.23.0",
+    "pdfplumber>=0.10.0",
     "sentence-transformers>=2.2.0",
     "chromadb>=0.4.0",
     "alembic>=1.12.0",

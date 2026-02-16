@@ -61,6 +61,11 @@ archive/**/*
 extracted/*.md
 !extracted/.gitkeep
 
+# Generated reports & pipeline output
+reports/
+diffs/
+intel_*.html
+
 # Temporary files
 temp/
 *.tmp
