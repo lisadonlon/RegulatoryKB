@@ -2,8 +2,10 @@
 FastAPI application for Regulatory Knowledge Base.
 """
 
+import os
 from pathlib import Path
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -11,6 +13,10 @@ from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
 from regkb.web.dependencies import get_flashed_messages
+from regkb.web.lifespan import lifespan
+
+# Load .env before anything else
+load_dotenv()
 
 # Paths
 WEB_DIR = Path(__file__).parent
@@ -22,12 +28,14 @@ app = FastAPI(
     title="Regulatory Knowledge Base",
     description="Medical device regulatory document management",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 # Session middleware for flash messages
+secret_key = os.environ.get("REGKB_SECRET_KEY", "regkb-secret-change-in-production")
 app.add_middleware(
     SessionMiddleware,
-    secret_key="regkb-secret-change-in-production",  # TODO: Move to config/env
+    secret_key=secret_key,
     session_cookie="regkb_session",
     max_age=3600,
 )
@@ -56,8 +64,10 @@ async def root():
 # Import and register routes
 # Note: documents must be registered before browse so /documents/add matches
 # before /documents/{doc_id}
+from regkb.web.health import router as health_router
 from regkb.web.routes import admin, browse, diff, documents, gaps, intel, search, versions
 
+app.include_router(health_router)
 app.include_router(search.router)
 app.include_router(diff.router)
 app.include_router(versions.router)

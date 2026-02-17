@@ -308,6 +308,17 @@ intelligence:
     # Time to check for daily alerts
     daily_alert_time: "09:00"
 
+  # Telegram bot settings
+  telegram:
+    enabled: true
+    search_limit: 5
+    pending_page_size: 5
+
+  # APScheduler settings
+  scheduler:
+    enabled: true
+    timezone: "Europe/Dublin"
+
   # Reply processing settings (for Phase 6)
   # Enables downloading documents by replying to digest emails
   reply_processing:

@@ -219,6 +219,9 @@ def run_sync_task():
         analysis = analyzer.analyze(filter_result.included)
 
         _pipeline_status["message"] = str(analysis)
+
+        # Send Telegram notification about new pending items
+        _notify_new_pending(analysis)
     except Exception as e:
         logger.error(f"Sync task failed:\n{traceback.format_exc()}")
         _pipeline_status["error"] = str(e)
@@ -313,6 +316,8 @@ def run_send_digest_task():
                 f"Digest sent to {email_result.recipients_sent} recipient(s) "
                 f"with {filter_result.total_included} entries"
             )
+            # Send Telegram notification about digest delivery
+            _notify_digest(filter_result.total_included, email_result.recipients_sent)
         else:
             _pipeline_status["error"] = f"Email failed: {email_result.error}"
     except Exception as e:
@@ -338,6 +343,47 @@ async def intel_send_digest(
         flash(request, "Digest generation started in background", "info")
 
     return RedirectResponse(url="/intel", status_code=303)
+
+
+_notify_logger = logging.getLogger(__name__)
+
+
+def _notify_new_pending(analysis):
+    """Fire-and-forget Telegram notification for new pending items."""
+    try:
+        import asyncio
+
+        from regkb.telegram.notifications import notify_new_pending
+
+        new_count = getattr(analysis, "new_downloadable", 0)
+        if new_count > 0:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                asyncio.ensure_future(notify_new_pending(new_count))
+            else:
+                loop.run_until_complete(notify_new_pending(new_count))
+    except ImportError:
+        pass  # Telegram not installed
+    except Exception:
+        _notify_logger.debug("Telegram notification failed (non-critical)", exc_info=True)
+
+
+def _notify_digest(entry_count: int, recipients: int):
+    """Fire-and-forget Telegram notification for digest delivery."""
+    try:
+        import asyncio
+
+        from regkb.telegram.notifications import notify_digest_sent
+
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            asyncio.ensure_future(notify_digest_sent(entry_count, recipients))
+        else:
+            loop.run_until_complete(notify_digest_sent(entry_count, recipients))
+    except ImportError:
+        pass  # Telegram not installed
+    except Exception:
+        _notify_logger.debug("Telegram notification failed (non-critical)", exc_info=True)
 
 
 @router.get("/intel/status", response_class=HTMLResponse)

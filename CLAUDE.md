@@ -1,6 +1,6 @@
 # CLAUDE.md — RegulatoryKB
 
-Medical device regulatory affairs knowledge base. Python 3.9+ · Click CLI · SQLite + ChromaDB · PDF extraction with OCR · regulatory intelligence pipeline.
+Medical device regulatory affairs knowledge base. Python 3.9+ · Click CLI · SQLite + ChromaDB · PDF extraction with OCR · regulatory intelligence pipeline · Telegram bot · APScheduler automation.
 
 ## File Map
 
@@ -8,10 +8,10 @@ Medical device regulatory affairs knowledge base. Python 3.9+ · Click CLI · SQ
 
 | File | Lines | Purpose |
 |------|------:|---------|
-| `pyproject.toml` | 105 | Build config, deps, tool settings (Black, Ruff, MyPy, pytest) |
+| `pyproject.toml` | 110 | Build config, deps (incl. `bot` extras), tool settings (Black, Ruff, MyPy, pytest) |
 | `.pre-commit-config.yaml` | 16 | Ruff + format + whitespace + YAML + large-file hooks |
 | `setup.py` | 11 | Shim for `pip install -e .` |
-| `config/config.yaml` | 336 | Runtime config: paths, doc types, jurisdictions, OCR, intelligence |
+| `config/config.yaml` | 346 | Runtime config: paths, doc types, jurisdictions, OCR, intelligence, telegram, scheduler |
 | `REGULATORY_CONTEXT.md` | 85 | Domain focus: medical devices, filtering rules, exclusions |
 
 ### `scripts/regkb/` — Core Package
@@ -36,7 +36,9 @@ Medical device regulatory affairs knowledge base. Python 3.9+ · Click CLI · SQ
 
 | File | Lines | Purpose |
 |------|------:|---------|
-| `main.py` | 69 | FastAPI app, session middleware, route registration (documents before browse for /add) |
+| `main.py` | 80 | FastAPI app with lifespan, dotenv, session middleware, route registration |
+| `lifespan.py` | 100 | Lifespan context manager: starts/stops APScheduler + Telegram bot |
+| `health.py` | 45 | `/health` endpoint: status, uptime, scheduler jobs, Telegram connected |
 | `dependencies.py` | 55 | DI functions (get_db, get_search_engine), flash messages |
 | `routes/search.py` | 125 | Search page with HTMX live results |
 | `routes/browse.py` | 145 | Document list, detail view, PDF download, text view |
@@ -44,10 +46,30 @@ Medical device regulatory affairs knowledge base. Python 3.9+ · Click CLI · SQ
 | `routes/diff.py` | 110 | Document comparison with side-by-side HTML diff, export (CSV/MD/HTML) |
 | `routes/versions.py` | 47 | Version status dashboard (current/outdated/unknown) |
 | `routes/gaps.py` | 140 | Gap analysis dashboard with jurisdiction drill-down, CSV export |
-| `routes/intel.py` | 358 | Intelligence pipeline: pending queue, approve/reject, digests, fetch/sync, send digest |
+| `routes/intel.py` | 400 | Intelligence pipeline: pending queue, approve/reject, digests, fetch/sync, send digest, Telegram notifications |
 | `routes/admin.py` | 288 | Statistics, settings, backup, reindex, batch operations (re-extract, metadata) |
 | `templates/` | 18 files | Jinja2: base, search, browse, detail, add, diff, versions, gaps, intel, batch, stats, settings + partials |
 | `static/` | 3 files | Pico CSS, custom.css, htmx.min.js |
+
+### `scripts/regkb/telegram/` — Telegram Bot Interface
+
+| File | Lines | Purpose |
+|------|------:|---------|
+| `bot.py` | 45 | Bot factory: creates Application, registers handlers, sets notification ref |
+| `auth.py` | 40 | `require_auth` decorator checking `TELEGRAM_AUTHORIZED_USERS` env var |
+| `handlers.py` | 250 | Command handlers: /start, /help, /status, /digest, /pending, /search |
+| `formatters.py` | 180 | MarkdownV2 escaping, entry/stats/search result formatting |
+| `keyboards.py` | 70 | Inline keyboard builders: approve/reject/page/digest actions |
+| `callbacks.py` | 150 | Callback query handlers for inline keyboard interactions |
+| `notifications.py` | 80 | Push notifications: critical alerts, job failures, digest sent |
+
+### `scripts/regkb/scheduler/` — APScheduler Automation
+
+| File | Lines | Purpose |
+|------|------:|---------|
+| `setup.py` | 100 | `create_scheduler()` factory: weekly/daily/IMAP jobs with CronTrigger |
+| `jobs.py` | 120 | Async job functions: weekly_digest, daily_alert, imap_poll |
+| `error_handler.py` | 40 | EVENT_JOB_ERROR listener → logs + Telegram notification |
 
 ### `scripts/regkb/intelligence/` — Monitoring Pipeline
 
@@ -63,6 +85,26 @@ Medical device regulatory affairs knowledge base. Python 3.9+ · Click CLI · SQ
 | `reply_handler.py` | 557 | Poll IMAP inbox for email replies; queue docs for download |
 | `scheduler.py` | 376 | Windows Task Scheduler XML + batch script generation |
 
+### `scripts/regkb/intelligence/sources/` — Multi-Source Fetching
+
+| File | Lines | Purpose |
+|------|------:|---------|
+| `base.py` | 40 | `SourceAdapter` ABC: name, source_id, enabled, fetch(days) |
+| `newsletter.py` | 25 | Wraps existing `NewsletterFetcher` as adapter |
+| `registry.py` | 80 | `fetch_all_sources(days)` — merges + deduplicates across adapters |
+| `fda_rss.py` | 100 | FDA CDRH RSS: guidance, recalls, safety (via feedparser) |
+| `eu_rss.py` | 100 | EU Official Journal + MDCG feeds, device-keyword filtering |
+| `mhra_rss.py` | 100 | MHRA/GOV.UK: device alerts + guidance (via feedparser) |
+
+### `scripts/regkb/intelligence/dedup.py`
+
+| Function | Purpose |
+|----------|---------|
+| `normalize_url(url)` | Strip tracking params, trailing slash, lowercase |
+| `normalize_title(title)` | Lowercase, strip punctuation, collapse whitespace |
+| `titles_similar(t1, t2)` | SequenceMatcher ≥ 0.85 threshold |
+| `deduplicate_entries(entries)` | URL + title dedup, prefers entries with links |
+
 ### `tests/`
 
 | File | Lines | Purpose |
@@ -75,8 +117,18 @@ Medical device regulatory affairs knowledge base. Python 3.9+ · Click CLI · SQ
 | `test_diff.py` | 66 | Diff stats, unified diff, HTML diff |
 | `test_extraction.py` | 73 | Markdown conversion, heading/list detection |
 | `test_downloader.py` | 76 | URL validation, filename sanitization |
+| `test_health.py` | 30 | Health endpoint JSON, status, scheduler, telegram |
+| `test_lifespan.py` | 50 | Lifespan context manager, mock scheduler/bot |
+| `test_telegram_auth.py` | 50 | Auth decorator, authorized/unauthorized users |
+| `test_telegram_formatters.py` | 70 | MarkdownV2 escaping, stats/search formatting |
+| `test_telegram_handlers.py` | 120 | Command handlers with mock Update/Context |
+| `test_scheduler_jobs.py` | 60 | Weekly/daily/IMAP jobs, idempotency, error handling |
+| `test_source_adapters.py` | 100 | RSS adapter parsing, registry, device filtering |
+| `test_dedup.py` | 70 | URL normalization, title similarity, deduplication |
 
 ## Architecture
+
+Single-process model: FastAPI + Telegram bot + APScheduler all run in one Python process via lifespan context manager.
 
 ```mermaid
 graph TB
@@ -115,7 +167,30 @@ graph TB
         archive["archive/ · PDFs"]
     end
 
+    subgraph Bot["Telegram Bot · python-telegram-bot"]
+        handlers["6 commands + inline keyboards"]
+        notifications["Push notifications"]
+    end
+
+    subgraph Sched["APScheduler"]
+        weekly["Weekly digest · CronTrigger"]
+        daily["Daily alert · CronTrigger"]
+        imap["IMAP poll · IntervalTrigger"]
+    end
+
+    subgraph Sources["Multi-Source Fetching"]
+        ioi["Index-of-Indexes"]
+        fda_rss["FDA CDRH RSS"]
+        eu_rss["EU OJ RSS"]
+        mhra_rss["MHRA RSS"]
+        dedup["Deduplicator"]
+        ioi & fda_rss & eu_rss & mhra_rss --> dedup
+    end
+
     CLI --> Core & Analysis & Intel
+    Bot --> Core & Intel
+    Sched --> Intel
+    Sources --> Intel
     db --- sqlite
     search --- chroma
     extraction --- extracted
@@ -170,6 +245,7 @@ graph TD
 pip install -e ".[dev]"       # Dev install (pytest, black, ruff, mypy)
 pip install -e ".[ocr]"       # OCR support (pytesseract, Pillow)
 pip install -e ".[web]"       # Web UI (FastAPI, uvicorn, jinja2)
+pip install -e ".[bot]"       # Telegram bot + APScheduler + feedparser
 regkb --help                  # CLI entry point
 regkb web --reload            # Start web UI at http://127.0.0.1:8000
 pytest                        # Run tests (verbose, short tracebacks)
@@ -429,6 +505,7 @@ Indexes: `hash` · `document_type` · `jurisdiction` · `is_latest`. Triggers: `
 
 | Route | Method | Purpose |
 |-------|--------|---------|
+| `/health` | GET | JSON health check: status, uptime, scheduler, telegram |
 | `/` | GET | Redirect to /search |
 | `/search` | GET | Search page with live HTMX results |
 | `/documents` | GET | Browse document list with filters |
@@ -490,6 +567,11 @@ Indexes: `hash` · `document_type` · `jurisdiction` · `is_latest`. Triggers: `
 | `intelligence.summarization.provider` | anthropic | LLM provider |
 | `intelligence.email.*` | — | SMTP server, port, sender, recipients, templates |
 | `intelligence.schedule.*` | — | Weekly day/time, monthly day, daily alert time |
+| `intelligence.telegram.enabled` | true | Enable Telegram bot |
+| `intelligence.telegram.search_limit` | 5 | Max search results in Telegram |
+| `intelligence.telegram.pending_page_size` | 5 | Items per pending page in Telegram |
+| `intelligence.scheduler.enabled` | true | Enable APScheduler |
+| `intelligence.scheduler.timezone` | Europe/Dublin | Scheduler timezone |
 | `intelligence.reply_processing.*` | — | IMAP server, port, poll interval |
 
 ## Environment
@@ -497,6 +579,9 @@ Indexes: `hash` · `document_type` · `jurisdiction` · `is_latest`. Triggers: `
 | Variable | Purpose |
 |----------|---------|
 | `REGKB_BASE_DIR` | Override base directory (default: project root) |
+| `REGKB_SECRET_KEY` | Session middleware secret (default: dev fallback) |
+| `TELEGRAM_BOT_TOKEN` | Telegram bot token from @BotFather |
+| `TELEGRAM_AUTHORIZED_USERS` | Comma-separated Telegram user IDs |
 | `ANTHROPIC_API_KEY` | Claude API key for intelligence summarization |
 | `SMTP_USERNAME` / `SMTP_PASSWORD` | Email delivery credentials |
 | `IMAP_USERNAME` / `IMAP_PASSWORD` | Email reply polling credentials |
@@ -528,7 +613,7 @@ Secrets live in `.env` (never committed).
 | `extraction.py` | `test_extraction.py` |
 | `downloader.py` | `test_downloader.py` |
 
-No network, no APIs, no ChromaDB, no PDFs in tests.
+No network, no APIs, no ChromaDB, no PDFs in tests. 182 tests passing.
 
 ## Gotchas
 
