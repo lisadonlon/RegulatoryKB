@@ -11,7 +11,7 @@ Medical device regulatory affairs knowledge base. Python 3.9+ · Click CLI · SQ
 | `pyproject.toml` | 105 | Build config, deps, tool settings (Black, Ruff, MyPy, pytest) |
 | `.pre-commit-config.yaml` | 16 | Ruff + format + whitespace + YAML + large-file hooks |
 | `setup.py` | 11 | Shim for `pip install -e .` |
-| `config/config.yaml` | 306 | Runtime config: paths, doc types, jurisdictions, OCR, intelligence |
+| `config/config.yaml` | 336 | Runtime config: paths, doc types, jurisdictions, OCR, intelligence |
 | `REGULATORY_CONTEXT.md` | 85 | Domain focus: medical devices, filtering rules, exclusions |
 
 ### `scripts/regkb/` — Core Package
@@ -44,7 +44,7 @@ Medical device regulatory affairs knowledge base. Python 3.9+ · Click CLI · SQ
 | `routes/diff.py` | 110 | Document comparison with side-by-side HTML diff, export (CSV/MD/HTML) |
 | `routes/versions.py` | 47 | Version status dashboard (current/outdated/unknown) |
 | `routes/gaps.py` | 140 | Gap analysis dashboard with jurisdiction drill-down, CSV export |
-| `routes/intel.py` | 273 | Intelligence pipeline: pending queue, approve/reject, digests, fetch/sync |
+| `routes/intel.py` | 358 | Intelligence pipeline: pending queue, approve/reject, digests, fetch/sync, send digest |
 | `routes/admin.py` | 288 | Statistics, settings, backup, reindex, batch operations (re-extract, metadata) |
 | `templates/` | 18 files | Jinja2: base, search, browse, detail, add, diff, versions, gaps, intel, batch, stats, settings + partials |
 | `static/` | 3 files | Pico CSS, custom.css, htmx.min.js |
@@ -54,7 +54,7 @@ Medical device regulatory affairs knowledge base. Python 3.9+ · Click CLI · SQ
 | File | Lines | Purpose |
 |------|------:|---------|
 | `fetcher.py` | 330 | Fetch regulatory updates from Index-of-Indexes CSV sources |
-| `filter.py` | 567 | Relevance scoring by keywords, categories, alert level |
+| `filter.py` | 590 | Relevance scoring by keywords, categories, alert level; device-keyword gating; loads config from YAML |
 | `analyzer.py` | 544 | Compare filtered entries against KB; manage download queue |
 | `summarizer.py` | 403 | LLM-powered summaries via Claude API; SQLite cache |
 | `emailer.py` | 848 | SMTP digest delivery (weekly/daily/reply-confirmation templates) |
@@ -453,6 +453,7 @@ Indexes: `hash` · `document_type` · `jurisdiction` · `is_latest`. Triggers: `
 | `/intel/digests` | GET | Digest history |
 | `/intel/fetch` | POST | Trigger newsletter fetch |
 | `/intel/sync` | POST | Run full sync pipeline |
+| `/intel/send-digest` | POST | Fetch, filter, and send digest email |
 | `/intel/status` | GET | HTMX partial for pipeline status |
 | `/admin/stats` | GET | Statistics dashboard |
 | `/admin/settings` | GET | Settings and paths |
@@ -540,6 +541,9 @@ No network, no APIs, no ChromaDB, no PDFs in tests.
 | `normalize_doc_identifier` parses `:YYYY` as part number | `"ISO 13485:2016"` → `"ISO 13485-2016"` (won't match `KNOWN_VERSIONS["ISO 13485"]`) |
 | FastAPI route ordering: `/documents/{id}` catches `/documents/add` | Register `documents.router` before `browse.router` in main.py |
 | FTS5 `content='documents'` requires `extracted_text` column | Column must exist in documents table; importer populates on import |
+| ContentFilter exclude keywords match agency names | Exclude check runs against title+category only, NOT agency (prevents "Food & Drug Administration" matching "drug") |
+| `config.py` DEFAULTS shallow copy | `__init__` and `reload` use `copy.deepcopy(self.DEFAULTS)` to prevent mutation of class-level dict |
+| `digest_tracker.py` module-level config access | Uses lazy `_get_db_path()` function instead of module-level `DB_PATH` to avoid import-time config singleton issues |
 
 ## Pre-commit
 
