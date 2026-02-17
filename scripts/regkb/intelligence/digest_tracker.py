@@ -18,8 +18,10 @@ from .filter import FilteredEntry
 
 logger = logging.getLogger(__name__)
 
-# Database path
-DB_PATH = config.base_dir / "db" / "intelligence_digests.db"
+
+def _get_db_path() -> Path:
+    """Get database path lazily to avoid import-time config access."""
+    return config.base_dir / "db" / "intelligence_digests.db"
 
 
 @dataclass
@@ -54,7 +56,7 @@ class DigestTracker:
 
     def __init__(self, db_path: Optional[Path] = None) -> None:
         """Initialize the digest tracker."""
-        self.db_path = db_path or DB_PATH
+        self.db_path = db_path or _get_db_path()
         self._ensure_db()
 
     def _ensure_db(self) -> None:

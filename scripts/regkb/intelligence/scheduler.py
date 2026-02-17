@@ -142,7 +142,7 @@ class SchedulerState:
 
         # Run if: correct day and hasn't run this month
         if now.day == monthly_day:
-            if self.last_monthly_run.year < now.year or self.last_monthly_run.month < now.month:
+            if (self.last_monthly_run.year, self.last_monthly_run.month) < (now.year, now.month):
                 return True
 
         return False

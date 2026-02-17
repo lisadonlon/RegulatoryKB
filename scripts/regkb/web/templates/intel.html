@@ -50,6 +50,9 @@
         <form method="post" action="/intel/sync" style="margin: 0;">
             <button type="submit" class="secondary">Full Sync</button>
         </form>
+        <form method="post" action="/intel/send-digest" style="margin: 0;">
+            <button type="submit" class="contrast">Send Digest</button>
+        </form>
     </div>
     <div id="pipeline-status" hx-get="/intel/status" hx-trigger="every 2s" style="margin-top: 1rem;">
         <span>Ready</span>

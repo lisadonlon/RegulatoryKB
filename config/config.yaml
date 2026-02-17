@@ -112,6 +112,10 @@ intelligence:
       - "IVD"
       - "Guidance"
 
+    # Minimum relevance score to include (0.0-1.0). Entries below this are excluded.
+    # Requires at least 2 keyword matches (~0.08) to pass.
+    min_relevance_score: 0.07
+
     # Categories to exclude
     exclude_categories:
       - "Pharmaceuticals"
@@ -121,33 +125,47 @@ intelligence:
 
     # Keywords that increase relevance (found in title/category/agency)
     include_keywords:
+      # Regulation names
       - "MDR"
       - "IVDR"
-      - "FDA"
-      - "guidance"
-      - "SaMD"
-      - "medical device"
-      - "IVD"
+      - "MDD"
+      - "EU 2017/745"
+      - "EU 2017/746"
+      # Standards
       - "ISO 13485"
       - "ISO 14971"
       - "IEC 62304"
+      - "IEC 62366"
+      - "ISO 10993"
+      - "IEC 60601"
+      # Device-specific terms
+      - "medical device"
+      - "SaMD"
+      - "IVD"
+      - "in vitro diagnostic"
       - "digital health"
-      - "AI"
-      - "machine learning"
-      - "cybersecurity"
-      - "software"
       - "CE mark"
+      - "CE marking"
       - "MDCG"
       - "notified body"
       - "UDI"
       - "EUDAMED"
+      - "MDSAP"
+      # FDA device pathways
       - "510(k)"
       - "PMA"
       - "De Novo"
+      - "FDA device"
+      - "CDRH"
+      # Technical
+      - "cybersecurity"
+      - "machine learning"
+      - "AI"
+      - "software"
 
     # Keywords that decrease relevance
     exclude_keywords:
-      - "drug"
+      # Pharma/drug terms
       - "pharmaceutical"
       - "clinical trial"
       - "biologics"
@@ -157,19 +175,30 @@ intelligence:
       - "medicine"
       - "medicines"
       - "medicinal product"
+      - "active substance"
+      - "excipient"
+      - "pharmacovigilance"
+      - "therapeutic product"
+      # Pharma-specific regulatory
       - "EMA"
       - "European Medicines Agency"
       - "ICH"
-      - "active substance"
-      - "excipient"
       - "GMP"
-      - "pharmacovigilance"
       - "eCTD"
       - "CTD"
       - "CEP"
       - "EDQM"
-      - "therapeutic product"
       - "Medsafe"
+      # OTC / cosmetics / food
+      - "OTC"
+      - "over-the-counter"
+      - "cosmetic"
+      - "dietary supplement"
+      # Other non-device
+      - "authorisation holder"
+      - "marketing authorisation"
+      - "co-marketing"
+      - "parallel import"
 
     # Combination device keywords (override pharma/ICH exclusion)
     combination_device_keywords:

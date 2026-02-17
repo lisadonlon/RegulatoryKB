@@ -202,7 +202,7 @@ class ContentFilter:
         Args:
             config: Filter configuration. Uses defaults if not provided.
         """
-        self.config = config or DEFAULT_FILTER_CONFIG
+        self.config = config or _load_filter_config()
 
         # Compile keyword patterns for efficient matching
         self._include_patterns: list[re.Pattern] = []
@@ -429,8 +429,9 @@ class ContentFilter:
             # Check for combination device (overrides pharma/ICH exclusion)
             is_combination = self._check_combination_device(text)
 
-            # Check for exclude keywords in title/agency/category
-            has_excludes, exclude_count = self._has_exclude_keywords(text)
+            # Check for exclude keywords in title and category only (not agency name)
+            exclude_text = f"{entry.title} {entry.category or ''}"
+            has_excludes, exclude_count = self._has_exclude_keywords(exclude_text)
 
             # Check category match
             cat_included, cat_excluded, matched_cats = self._check_category_match(entry)
@@ -441,25 +442,44 @@ class ContentFilter:
             # Determine if entry should be included
             should_include = False
 
+            # Device-specific indicators — used to confirm device relevance
+            device_indicators = [
+                "medical device",
+                "IVD",
+                "in vitro diagnostic",
+                "SaMD",
+                "510(k)",
+                "PMA",
+                "De Novo",
+                "MDR",
+                "IVDR",
+                "MDD",
+                "CE mark",
+                "MDCG",
+                "notified body",
+                "UDI",
+                "EUDAMED",
+                "MDSAP",
+                "CDRH",
+                "IEC 62304",
+                "ISO 13485",
+                "ISO 14971",
+                "cybersecurity",
+            ]
+            has_device_keyword = any(kw.lower() in text.lower() for kw in device_indicators)
+
+            # Minimum relevance threshold from config
+            min_relevance = self.config.get("min_relevance_score", 0.0)
+
             # If multiple exclude keywords found, exclude (unless combination device)
             if exclude_count >= 2 and not is_combination:
                 should_include = False
             elif cat_included and not cat_excluded and not has_excludes:
                 # Category matches and no exclude keywords
-                should_include = True
+                # Still require device relevance — "Guidance" category is too broad
+                should_include = has_device_keyword or relevance > min_relevance
             elif cat_included and not cat_excluded and has_excludes:
-                # Category matches but has exclude keywords - only include if good device keywords
-                # Require at least one strong device indicator
-                device_indicators = [
-                    "medical device",
-                    "IVD",
-                    "SaMD",
-                    "510(k)",
-                    "MDR",
-                    "IVDR",
-                    "CE mark",
-                ]
-                has_device_keyword = any(kw.lower() in text.lower() for kw in device_indicators)
+                # Category matches but has exclude keywords — require strong device indicator
                 should_include = has_device_keyword
             elif cat_excluded and is_combination:
                 # Override exclusion for combination devices
@@ -469,7 +489,7 @@ class ContentFilter:
                 should_include = False
             elif relevance > 0.1:
                 # Include based on keyword relevance only if no exclusions
-                should_include = True
+                should_include = has_device_keyword
 
             if should_include:
                 # Check alert level

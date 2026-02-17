@@ -118,7 +118,7 @@ async def import_from_url(
         "description": description if description else None,
     }
 
-    doc_id = importer.import_from_url(url, metadata if title else None)
+    doc_id = importer.import_from_url(url, metadata)
 
     if doc_id:
         flash(request, f"Document added successfully! (ID: {doc_id})", "success")

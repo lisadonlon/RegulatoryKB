@@ -322,6 +322,9 @@ class Summarizer:
                 max_tokens=500,
                 messages=[{"role": "user", "content": prompt}],
             )
+            if not response.content:
+                logger.error("Empty response from API")
+                return None
             response_text = response.content[0].text
             summary = self._parse_summary_response(response_text, entry, self.model)
 

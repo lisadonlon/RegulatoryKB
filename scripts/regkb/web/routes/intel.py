@@ -2,6 +2,9 @@
 Intelligence pipeline management routes.
 """
 
+import logging
+import traceback
+
 from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -9,6 +12,7 @@ from fastapi.templating import Jinja2Templates
 from regkb.database import Database
 from regkb.intelligence.analyzer import KBAnalyzer
 from regkb.intelligence.digest_tracker import DigestTracker
+from regkb.intelligence.emailer import Emailer
 from regkb.intelligence.fetcher import NewsletterFetcher
 from regkb.intelligence.filter import ContentFilter
 from regkb.intelligence.scheduler import SchedulerState
@@ -178,7 +182,7 @@ def run_fetch_task():
         _pipeline_status["message"] = "Fetching newsletter entries..."
 
         fetcher = NewsletterFetcher()
-        result = fetcher.fetch_all(days_back=7)
+        result = fetcher.fetch(days=7)
 
         _pipeline_status["message"] = (
             f"Fetched {result.total_entries} entries from {result.sources_fetched} sources"
@@ -189,30 +193,34 @@ def run_fetch_task():
         _pipeline_status["running"] = False
 
 
-def run_sync_task(db_path: str):
+def run_sync_task():
     """Background task: full sync (fetch, filter, analyze)."""
     global _pipeline_status
+    logger = logging.getLogger(__name__)
     try:
         _pipeline_status["stage"] = "Fetching"
         _pipeline_status["message"] = "Fetching newsletter entries..."
 
         fetcher = NewsletterFetcher()
-        fetch_result = fetcher.fetch_all(days_back=7)
+        fetch_result = fetcher.fetch(days=7)
 
         _pipeline_status["stage"] = "Filtering"
         _pipeline_status["message"] = f"Filtering {fetch_result.total_entries} entries..."
 
         content_filter = ContentFilter()
-        filter_result = content_filter.filter_entries(fetch_result.entries)
+        filter_result = content_filter.filter(fetch_result.entries)
 
         _pipeline_status["stage"] = "Analyzing"
-        _pipeline_status["message"] = f"Analyzing {len(filter_result.entries)} relevant entries..."
+        _pipeline_status["message"] = (
+            f"Analyzing {filter_result.total_included} relevant entries..."
+        )
 
-        analyzer = KBAnalyzer(db_path=db_path)
-        analysis = analyzer.analyze(filter_result)
+        analyzer = KBAnalyzer()
+        analysis = analyzer.analyze(filter_result.included)
 
         _pipeline_status["message"] = str(analysis)
     except Exception as e:
+        logger.error(f"Sync task failed:\n{traceback.format_exc()}")
         _pipeline_status["error"] = str(e)
     finally:
         _pipeline_status["running"] = False
@@ -240,7 +248,6 @@ async def intel_fetch(
 async def intel_sync(
     request: Request,
     background_tasks: BackgroundTasks,
-    db: Database = Depends(get_db),
 ):
     """Run full sync (fetch, filter, analyze)."""
     global _pipeline_status
@@ -249,8 +256,86 @@ async def intel_sync(
         flash(request, "Pipeline already running", "warning")
     else:
         _pipeline_status = {"running": True, "stage": "", "message": "", "error": None}
-        background_tasks.add_task(run_sync_task, str(db.db_path))
+        background_tasks.add_task(run_sync_task)
         flash(request, "Sync started in background", "info")
+
+    return RedirectResponse(url="/intel", status_code=303)
+
+
+def run_send_digest_task():
+    """Background task: fetch, filter, and send digest email."""
+    global _pipeline_status
+    logger = logging.getLogger(__name__)
+    try:
+        from datetime import datetime, timedelta
+
+        from dotenv import load_dotenv
+
+        load_dotenv()
+
+        _pipeline_status["stage"] = "Fetching"
+        _pipeline_status["message"] = "Fetching newsletter entries..."
+
+        fetcher = NewsletterFetcher()
+        fetch_result = fetcher.fetch(days=14)
+
+        _pipeline_status["stage"] = "Filtering"
+        _pipeline_status["message"] = f"Filtering {fetch_result.total_entries} entries..."
+
+        content_filter = ContentFilter()
+        filter_result = content_filter.filter(fetch_result.entries)
+
+        if filter_result.total_included == 0:
+            _pipeline_status["message"] = "No relevant entries found to send."
+            return
+
+        _pipeline_status["stage"] = "Sending"
+        _pipeline_status["message"] = (
+            f"Sending digest with {filter_result.total_included} entries..."
+        )
+
+        emailer = Emailer()
+        entries_with_summaries = [(fe, None) for fe in filter_result.included]
+        high_priority = [(fe, None) for fe in filter_result.high_priority]
+
+        end = datetime.now()
+        start = end - timedelta(days=14)
+        date_range = f"{start.strftime('%d %b')} - {end.strftime('%d %b %Y')}"
+
+        email_result = emailer.send_weekly_digest(
+            entries_with_summaries=entries_with_summaries,
+            high_priority=high_priority,
+            date_range=date_range,
+        )
+
+        if email_result.success:
+            _pipeline_status["message"] = (
+                f"Digest sent to {email_result.recipients_sent} recipient(s) "
+                f"with {filter_result.total_included} entries"
+            )
+        else:
+            _pipeline_status["error"] = f"Email failed: {email_result.error}"
+    except Exception as e:
+        logger.error(f"Send digest failed:\n{traceback.format_exc()}")
+        _pipeline_status["error"] = str(e)
+    finally:
+        _pipeline_status["running"] = False
+
+
+@router.post("/intel/send-digest", response_class=HTMLResponse)
+async def intel_send_digest(
+    request: Request,
+    background_tasks: BackgroundTasks,
+):
+    """Fetch, filter, and send digest email."""
+    global _pipeline_status
+
+    if _pipeline_status["running"]:
+        flash(request, "Pipeline already running", "warning")
+    else:
+        _pipeline_status = {"running": True, "stage": "", "message": "", "error": None}
+        background_tasks.add_task(run_send_digest_task)
+        flash(request, "Digest generation started in background", "info")
 
     return RedirectResponse(url="/intel", status_code=303)
 
@@ -260,12 +345,12 @@ async def intel_status(request: Request):
     """Get current pipeline status (HTMX partial)."""
     global _pipeline_status
 
-    if _pipeline_status["error"]:
-        return HTMLResponse(f'<span class="text-danger">Error: {_pipeline_status["error"]}</span>')
-    elif _pipeline_status["running"]:
+    if _pipeline_status["running"]:
         return HTMLResponse(
             f'<span aria-busy="true">{_pipeline_status["stage"]}: {_pipeline_status["message"]}</span>'
         )
+    elif _pipeline_status["error"]:
+        return HTMLResponse(f'<span class="text-danger">Error: {_pipeline_status["error"]}</span>')
     elif _pipeline_status["message"]:
         return HTMLResponse(f'<span class="text-success">{_pipeline_status["message"]}</span>')
     else:

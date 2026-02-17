@@ -30,11 +30,16 @@ async def gaps_page(
     results = run_gap_analysis(db_path)
     summary = get_gap_summary(results)
 
-    # Priority order for display
-    priority_order = ["EU", "UK", "US", "Canada", "Australia", "ISO", "IMDRF", "MDSAP"]
+    # Priority order for display, then any remaining jurisdictions
+    priority_order = ["EU", "FDA", "UK", "Health Canada", "TGA", "ISO", "ICH", "IMDRF"]
     jurisdictions = []
+    seen = set()
     for jur in priority_order:
         if jur in summary["by_jurisdiction"]:
+            jurisdictions.append({"name": jur, **summary["by_jurisdiction"][jur]})
+            seen.add(jur)
+    for jur in sorted(summary["by_jurisdiction"]):
+        if jur not in seen:
             jurisdictions.append({"name": jur, **summary["by_jurisdiction"][jur]})
 
     stats = db.get_statistics()

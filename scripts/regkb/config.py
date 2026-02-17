@@ -4,6 +4,7 @@ Configuration management for the Regulatory Knowledge Base.
 Handles loading and accessing configuration from YAML files and environment variables.
 """
 
+import copy
 import os
 from pathlib import Path
 from typing import Any, Optional
@@ -91,7 +92,7 @@ class Config:
         if self._initialized:
             return
         self._initialized = True
-        self._config = self.DEFAULTS.copy()
+        self._config = copy.deepcopy(self.DEFAULTS)
         self._base_dir = self._find_base_dir()
         self._load_config_file()
 
@@ -289,7 +290,7 @@ class Config:
 
     def reload(self) -> None:
         """Reload configuration from file."""
-        self._config = self.DEFAULTS.copy()
+        self._config = copy.deepcopy(self.DEFAULTS)
         self._load_config_file()
 
 

@@ -2,7 +2,9 @@
 Admin routes (stats, settings, backup, reindex).
 """
 
+import logging
 import threading
+from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
@@ -13,6 +15,8 @@ from regkb.database import Database
 from regkb.extraction import TextExtractor
 from regkb.search import SearchEngine
 from regkb.web.dependencies import flash, get_db, get_flashed_messages, get_search_engine
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["admin"])
 templates = Jinja2Templates(directory="scripts/regkb/web/templates")
@@ -145,8 +149,6 @@ def do_batch_reextract(doc_ids: list[int], db: Database, force_ocr: bool = False
         try:
             doc = db.get_document(doc_id=doc_id)
             if doc and doc.get("file_path"):
-                from pathlib import Path
-
                 pdf_path = Path(doc["file_path"])
                 if pdf_path.exists():
                     ok, extracted_path, text = extractor.re_extract(pdf_path, doc_id, force_ocr)
@@ -155,8 +157,8 @@ def do_batch_reextract(doc_ids: list[int], db: Database, force_ocr: bool = False
                             doc_id, extracted_path=str(extracted_path), extracted_text=text
                         )
                         success += 1
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error(f"Re-extract failed for doc {doc_id}: {e}")
         batch_status["progress"] = i + 1
 
     batch_status["running"] = False
