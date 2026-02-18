@@ -49,6 +49,10 @@ async def handle_callback(update, context):
             await _handle_send_email(query)
         elif data == "refresh_digest":
             await _handle_refresh_digest(query)
+        elif data.startswith("search_"):
+            from regkb.telegram.search_handler import handle_search_callback
+
+            await handle_search_callback(query, data)
         elif data == "cancel":
             await query.edit_message_reply_markup(reply_markup=None)
         else:

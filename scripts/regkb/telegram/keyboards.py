@@ -53,6 +53,34 @@ def digest_action_keyboard():
     )
 
 
+def _build_search_keyboard(page: int = 0, has_more: bool = False, total: int = 0):
+    """Build search results keyboard with pagination and detail buttons."""
+    from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+
+    rows = []
+
+    # Detail buttons for first few results
+    detail_buttons = []
+    start = page * 5  # Assumes page_size of 5
+    for i in range(min(total - start, 5)):
+        detail_buttons.append(
+            InlineKeyboardButton(f"#{i + 1}", callback_data=f"search_detail_{start + i}")
+        )
+    if detail_buttons:
+        rows.append(detail_buttons)
+
+    # Pagination
+    nav_buttons = []
+    if page > 0:
+        nav_buttons.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"search_page_{page - 1}"))
+    if has_more:
+        nav_buttons.append(InlineKeyboardButton("➡️ Next", callback_data=f"search_page_{page + 1}"))
+    if nav_buttons:
+        rows.append(nav_buttons)
+
+    return InlineKeyboardMarkup(rows) if rows else None
+
+
 def confirm_keyboard(action: str, item_id: Optional[int] = None):
     """Build a yes/no confirmation keyboard."""
     from telegram import InlineKeyboardButton, InlineKeyboardMarkup

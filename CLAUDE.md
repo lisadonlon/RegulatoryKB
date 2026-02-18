@@ -55,13 +55,15 @@ Medical device regulatory affairs knowledge base. Python 3.9+ · Click CLI · SQ
 
 | File | Lines | Purpose |
 |------|------:|---------|
-| `bot.py` | 45 | Bot factory: creates Application, registers handlers, sets notification ref |
+| `bot.py` | 75 | Bot factory: 7 commands + CallbackQueryHandler + MessageHandler for plain text |
 | `auth.py` | 40 | `require_auth` decorator checking `TELEGRAM_AUTHORIZED_USERS` env var |
 | `handlers.py` | 250 | Command handlers: /start, /help, /status, /digest, /pending, /search |
 | `formatters.py` | 180 | MarkdownV2 escaping, entry/stats/search result formatting |
-| `keyboards.py` | 70 | Inline keyboard builders: approve/reject/page/digest actions |
-| `callbacks.py` | 150 | Callback query handlers for inline keyboard interactions |
+| `keyboards.py` | 100 | Inline keyboard builders: approve/reject/page/digest/search actions |
+| `callbacks.py` | 200 | Callback query handlers: approve/reject/page/digest/search routing |
 | `notifications.py` | 80 | Push notifications: critical alerts, job failures, digest sent |
+| `search_handler.py` | 220 | Enhanced search: NL query parsing, jurisdiction aliases, pagination, follow-up |
+| `llm_handler.py` | 170 | LLM Q&A: Nexa/Qwen NPU (simple) + Claude Haiku (complex), think-tag stripping |
 
 ### `scripts/regkb/scheduler/` — APScheduler Automation
 
@@ -125,6 +127,8 @@ Medical device regulatory affairs knowledge base. Python 3.9+ · Click CLI · SQ
 | `test_scheduler_jobs.py` | 60 | Weekly/daily/IMAP jobs, idempotency, error handling |
 | `test_source_adapters.py` | 100 | RSS adapter parsing, registry, device filtering |
 | `test_dedup.py` | 70 | URL normalization, title similarity, deduplication |
+| `test_search_handler.py` | 155 | NL query parsing, jurisdiction aliases, /search + /ask commands |
+| `test_llm_handler.py` | 150 | Query complexity, context building, LLM routing, think-tag stripping |
 
 ## Architecture
 
@@ -168,8 +172,11 @@ graph TB
     end
 
     subgraph Bot["Telegram Bot · python-telegram-bot"]
-        handlers["6 commands + inline keyboards"]
+        handlers["7 commands + NL message handler"]
         notifications["Push notifications"]
+        nlsearch["NL search + LLM Q&A"]
+        nlsearch -->|simple| nexa["Nexa/Qwen NPU"]
+        nlsearch -->|complex| claude["Claude Haiku API"]
     end
 
     subgraph Sched["APScheduler"]
@@ -613,7 +620,7 @@ Secrets live in `.env` (never committed).
 | `extraction.py` | `test_extraction.py` |
 | `downloader.py` | `test_downloader.py` |
 
-No network, no APIs, no ChromaDB, no PDFs in tests. 182 tests passing.
+No network, no APIs, no ChromaDB, no PDFs in tests. 215 tests passing.
 
 ## Gotchas
 

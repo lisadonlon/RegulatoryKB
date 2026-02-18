@@ -50,8 +50,10 @@ async def start_command(update, context):
         f"/status {escape_md('— KB stats and pipeline status')}\n"
         f"/digest {escape_md('— Run pipeline and show latest updates')}\n"
         f"/pending {escape_md('— View pending downloads')}\n"
-        f"/search {escape_md('<query> — Search the knowledge base')}\n"
-        f"/help {escape_md('— Show this help message')}\n"
+        f"/search {escape_md('<query> — Search with filters')}\n"
+        f"/ask {escape_md('<question> — Ask about KB contents')}\n"
+        f"/help {escape_md('— Show this help message')}\n\n"
+        f"{escape_md('Or just type a question directly!')}\n"
     )
     await _safe_reply(update, text)
 
@@ -63,9 +65,12 @@ async def help_command(update, context):
         f"/status {escape_md('— Knowledge base statistics, pending count, scheduler status')}\n"
         f"/digest {escape_md('— Fetch latest regulatory updates and display summary')}\n"
         f"/pending {escape_md('— Show pending downloads with approve/reject buttons')}\n"
-        f"/search {escape_md('<query> — Search KB by keywords or natural language')}\n"
+        f"/search {escape_md('<query> — Search KB with jurisdiction/type filters')}\n"
+        f"/ask {escape_md('<question> — Ask questions about KB contents (LLM-powered)')}\n"
         f"/help {escape_md('— This help message')}\n\n"
-        f"{escape_md('Inline buttons let you approve or reject items directly.')}\n"
+        f"{escape_md('You can also type questions directly without a command.')}\n"
+        f"{escape_md('Search understands jurisdictions: FDA, EU, UK, ISO, etc.')}\n"
+        f"{escape_md('Inline buttons let you approve/reject items and paginate results.')}\n"
         f"{escape_md('Critical alerts are sent automatically via push notifications.')}"
     )
     await _safe_reply(update, text)
