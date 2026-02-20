@@ -65,6 +65,8 @@ extracted/*.md
 reports/
 diffs/
 intel_*.html
+regulatory_digest_*.md
+~$*.md
 
 # Temporary files
 temp/
