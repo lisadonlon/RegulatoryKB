@@ -12,7 +12,7 @@ graph TB
         direction TB
         Import["PDF Import<br/><i>add, import-docs, ingest</i>"]
         Valid["PDF Validation<br/><i>magic bytes, hash dedup</i>"]
-        Extract["Text Extraction<br/><i>PyMuPDF + OCR fallback</i>"]
+        Extract["Text Extraction<br/><i>pdfplumber + OCR fallback</i>"]
         ContentVal["Content Validation<br/><i>title vs extracted text</i>"]
         DB[("SQLite DB<br/>FTS5 full-text index")]
         Chroma[("ChromaDB<br/>vector embeddings")]
@@ -76,7 +76,7 @@ graph TB
 - **PDF validation** — magic byte checking, detects HTML error pages, ZIPs, images
 
 ### Text Extraction
-- **PyMuPDF** for native PDF text extraction to Markdown
+- **pdfplumber** for native PDF text extraction to Markdown
 - **OCR fallback** via Tesseract for scanned pages (auto-triggers when page text < 50 chars)
 - **Batch OCR re-extraction** for existing documents
 
@@ -141,6 +141,9 @@ pip install -e .
 
 # Optional: OCR support
 pip install -e ".[ocr]"
+
+# Full local development + test stack
+pip install -e ".[dev,web,bot]"
 ```
 
 ### Environment Variables
@@ -329,7 +332,7 @@ RegulatoryKB/
 │   └── diffs/                # Generated HTML diff reports
 ├── scripts/
 │   └── regkb/                # Python package
-│       ├── cli.py            # CLI commands
+│       ├── cli.py            # CLI bootstrap + command registration
 │       ├── config.py         # Configuration manager
 │       ├── database.py       # SQLite operations
 │       ├── extraction.py     # PDF text extraction + OCR
@@ -342,6 +345,11 @@ RegulatoryKB/
 │       ├── acquisition_list.py
 │       ├── reference_docs.py # Reference document checklist
 │       ├── downloader.py     # Document downloader
+│       ├── services.py       # Shared service access layer (lazy singleton access)
+│       ├── commands/         # Modular Click command groups
+│       │   ├── core.py       # Core document commands (`search`, `add`, `list`, etc.)
+│       │   ├── lifecycle.py  # Import/extract/diff/gaps/download/web commands
+│       │   └── intel.py      # `regkb intel` command group
 │       ├── web/              # FastAPI web UI
 │       │   ├── main.py       # App, middleware, routes
 │       │   ├── dependencies.py

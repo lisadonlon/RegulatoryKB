@@ -8,9 +8,15 @@ Supports OCR fallback for scanned PDFs via PyTesseract.
 import logging
 import re
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
-import pdfplumber
+try:
+    import pdfplumber
+except Exception as e:  # pragma: no cover - exercised via startup/runtime checks
+    pdfplumber = None
+    _pdfplumber_import_error = e
+else:
+    _pdfplumber_import_error = None
 
 from .config import config
 
@@ -103,6 +109,11 @@ class TextExtractor:
         text_parts = []
         ocr_page_count = 0
 
+        if pdfplumber is None:
+            raise RuntimeError(
+                "pdfplumber is not installed. Install project dependencies with: pip install -e ."
+            ) from _pdfplumber_import_error
+
         with pdfplumber.open(pdf_path) as pdf:
             for page_num, page in enumerate(pdf.pages, 1):
                 page_text = page.extract_text() or ""
@@ -127,7 +138,7 @@ class TextExtractor:
 
         return "\n\n".join(text_parts)
 
-    def _ocr_page(self, page: pdfplumber.pdf.Page) -> Optional[str]:
+    def _ocr_page(self, page: Any) -> Optional[str]:
         """
         Render a PDF page to an image and OCR it.
 

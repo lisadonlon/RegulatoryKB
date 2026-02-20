@@ -6,33 +6,33 @@ from functools import lru_cache
 
 from fastapi import Request
 
-from regkb.config import config
-from regkb.database import Database
-from regkb.importer import DocumentImporter
-from regkb.search import SearchEngine
+from regkb.services import get_config as service_get_config
+from regkb.services import get_db as service_get_db
+from regkb.services import get_importer as service_get_importer
+from regkb.services import get_search_engine as service_get_search_engine
 
 
 @lru_cache
-def get_db() -> Database:
+def get_db():
     """Get cached database instance."""
-    return Database()
+    return service_get_db()
 
 
 @lru_cache
-def get_search_engine() -> SearchEngine:
+def get_search_engine():
     """Get cached search engine instance."""
-    return SearchEngine()
+    return service_get_search_engine()
 
 
 @lru_cache
-def get_importer() -> DocumentImporter:
+def get_importer():
     """Get cached importer instance."""
-    return DocumentImporter()
+    return service_get_importer()
 
 
 def get_config():
     """Get config singleton."""
-    return config
+    return service_get_config()
 
 
 # Flash message utilities

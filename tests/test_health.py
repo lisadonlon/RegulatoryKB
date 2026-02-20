@@ -1,7 +1,11 @@
 """Tests for the /health endpoint."""
 
 import pytest
-from fastapi.testclient import TestClient
+
+try:
+    from fastapi.testclient import TestClient
+except ModuleNotFoundError:
+    pytest.skip("fastapi is not installed", allow_module_level=True)
 
 
 @pytest.fixture

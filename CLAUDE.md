@@ -8,29 +8,33 @@ Medical device regulatory affairs knowledge base. Python 3.9+ · Click CLI · SQ
 
 | File | Lines | Purpose |
 |------|------:|---------|
-| `pyproject.toml` | 110 | Build config, deps (incl. `bot` extras), tool settings (Black, Ruff, MyPy, pytest) |
+| `pyproject.toml` | 116 | Build config, deps (incl. `bot` extras), tool settings (Black, Ruff, MyPy, pytest) |
 | `.pre-commit-config.yaml` | 16 | Ruff + format + whitespace + YAML + large-file hooks |
 | `setup.py` | 11 | Shim for `pip install -e .` |
 | `config/config.yaml` | 346 | Runtime config: paths, doc types, jurisdictions, OCR, intelligence, telegram, scheduler |
-| `REGULATORY_CONTEXT.md` | 85 | Domain focus: medical devices, filtering rules, exclusions |
+| `REGULATORY_CONTEXT.md` | 84 | Domain focus: medical devices, filtering rules, exclusions |
 
 ### `scripts/regkb/` — Core Package
 
 | File | Lines | Purpose |
 |------|------:|---------|
-| `cli.py` | 2677 | Click CLI — 18 commands + `intel` subgroup (17 subcommands) |
-| `config.py` | 297 | Singleton config manager; loads YAML, validates/normalizes types + jurisdictions |
-| `database.py` | 485 | SQLite manager with FTS5 full-text search, CRUD, import batch tracking |
-| `search.py` | 313 | Dual search: SQLite FTS5 + ChromaDB semantic vector search |
-| `importer.py` | 415 | Import workflow: dedup, validation, text extraction, batch audit |
-| `extraction.py` | 295 | PDF→Markdown via pdfplumber; OCR fallback via pytesseract |
-| `downloader.py` | 252 | HTTP document fetcher with URL validation and filename sanitization |
-| `diff.py` | 310 | Document comparison: unified diff, HTML side-by-side, similarity stats, export (CSV/MD/HTML) |
-| `version_tracker.py` | 448 | Version checking against `KNOWN_VERSIONS` dict; current/outdated/unknown |
-| `version_diff.py` | 296 | Auto-detect prior versions of imported docs and generate diffs |
-| `gap_analysis.py` | 324 | Compare KB against reference checklist; identifier matching + scoring |
-| `reference_docs.py` | 953 | Curated checklist of essential regulatory documents by jurisdiction |
-| `acquisition_list.py` | 880 | Acquisition URLs for missing docs by jurisdiction + priority |
+| `cli.py` | 42 | CLI bootstrap: logging, `Click` root group, command registration |
+| `services.py` | 29 | Shared service accessors (`get_db`, `get_importer`, `get_search_engine`, etc.) |
+| `commands/core.py` | 275 | Core top-level commands: search/add/list/show/update/stats |
+| `commands/lifecycle.py` | 579 | Lifecycle/ops commands: import/ingest/extract/reindex/diff/gaps/download/acquire/versions/web |
+| `commands/intel.py` | 1015 | `regkb intel` command group and subcommands |
+| `config.py` | 251 | Singleton config manager; loads YAML, validates/normalizes types + jurisdictions |
+| `database.py` | 415 | SQLite manager with FTS5 full-text search, CRUD, import batch tracking |
+| `search.py` | 249 | Dual search: SQLite FTS5 + ChromaDB semantic vector search |
+| `importer.py` | 358 | Import workflow: dedup, validation, text extraction, batch audit |
+| `extraction.py` | 239 | PDF→Markdown via pdfplumber; OCR fallback via pytesseract |
+| `downloader.py` | 210 | HTTP document fetcher with URL validation and filename sanitization |
+| `diff.py` | 360 | Document comparison: unified diff, HTML side-by-side, similarity stats, export (CSV/MD/HTML) |
+| `version_tracker.py` | 396 | Version checking against `KNOWN_VERSIONS` dict; current/outdated/unknown |
+| `version_diff.py` | 244 | Auto-detect prior versions of imported docs and generate diffs |
+| `gap_analysis.py` | 261 | Compare KB against reference checklist; identifier matching + scoring |
+| `reference_docs.py` | 946 | Curated checklist of essential regulatory documents by jurisdiction |
+| `acquisition_list.py` | 862 | Acquisition URLs for missing docs by jurisdiction + priority |
 
 ### `scripts/regkb/web/` — FastAPI Web UI
 
@@ -69,7 +73,7 @@ Medical device regulatory affairs knowledge base. Python 3.9+ · Click CLI · SQ
 
 | File | Lines | Purpose |
 |------|------:|---------|
-| `setup.py` | 100 | `create_scheduler()` factory: weekly/daily/IMAP jobs with CronTrigger |
+| `scripts/regkb/scheduler/setup.py` | 118 | `create_scheduler()` factory: weekly/daily/IMAP jobs with CronTrigger |
 | `jobs.py` | 120 | Async job functions: weekly_digest, daily_alert, imap_poll |
 | `error_handler.py` | 40 | EVENT_JOB_ERROR listener → logs + Telegram notification |
 
@@ -137,7 +141,13 @@ Single-process model: FastAPI + Telegram bot + APScheduler all run in one Python
 ```mermaid
 graph TB
     subgraph CLI["regkb CLI · Click"]
-        commands["17 commands + intel subgroup"]
+        bootstrap["cli.py bootstrap"]
+        core_cmds["commands/core.py"]
+        life_cmds["commands/lifecycle.py"]
+        intel_cmds["commands/intel.py"]
+        bootstrap --> core_cmds
+        bootstrap --> life_cmds
+        bootstrap --> intel_cmds
     end
 
     subgraph Core["Core Modules"]
@@ -194,7 +204,9 @@ graph TB
         ioi & fda_rss & eu_rss & mhra_rss --> dedup
     end
 
-    CLI --> Core & Analysis & Intel
+    core_cmds --> Core
+    life_cmds --> Core & Analysis
+    intel_cmds --> Core & Intel
     Bot --> Core & Intel
     Sched --> Intel
     Sources --> Intel
@@ -230,6 +242,7 @@ sequenceDiagram
 ```mermaid
 graph TD
     config["config"]
+    services["services"]
     database --> config
     extraction --> config
     diff --> config
@@ -239,11 +252,17 @@ graph TD
     gap_analysis --> reference_docs
     intel_filter["intel/filter"] --> intel_fetcher["intel/fetcher"]
     intel_analyzer["intel/analyzer"] --> config & intel_filter
-    cli --> config & database & importer & search & extraction
-    cli --> downloader & gap_analysis & version_tracker & version_diff
-    cli --> intel_fetcher & intel_filter & intel_analyzer
-    cli --> intel_summarizer & intel_emailer & intel_digest_tracker
-    cli --> intel_reply_handler & intel_url_resolver & intel_scheduler
+    services --> database & importer & search & extraction & downloader
+    cli["cli.py"] --> core_cmds["commands/core.py"]
+    cli --> life_cmds["commands/lifecycle.py"]
+    cli --> intel_cmds["commands/intel.py"]
+    core_cmds --> services & config
+    life_cmds --> services & config
+    life_cmds --> diff & gap_analysis & version_tracker & acquisition_list
+    intel_cmds --> services & config
+    intel_cmds --> intel_fetcher & intel_filter & intel_analyzer
+    intel_cmds --> intel_summarizer & intel_emailer & intel_digest_tracker
+    intel_cmds --> intel_reply_handler & intel_url_resolver & intel_scheduler
 ```
 
 ## Key Commands

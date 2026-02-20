@@ -9,14 +9,12 @@ import logging
 import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
 import requests
 from tqdm import tqdm
 
 from .config import config
-from .database import db
-from .extraction import extractor
 
 logger = logging.getLogger(__name__)
 
@@ -42,9 +40,28 @@ class ImportResult:
 class DocumentImporter:
     """Handles importing documents into the knowledge base."""
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        db_service: Optional[Any] = None,
+        extractor_service: Optional[Any] = None,
+        config_service: Optional[Any] = None,
+    ) -> None:
         """Initialize the document importer."""
-        self.archive_dir = config.archive_dir
+        self.config = config_service or config
+
+        if db_service is None:
+            from .database import db as default_db
+
+            db_service = default_db
+
+        if extractor_service is None:
+            from .extraction import extractor as default_extractor
+
+            extractor_service = default_extractor
+
+        self.db = db_service
+        self.extractor = extractor_service
+        self.archive_dir = self.config.archive_dir
         self.archive_dir.mkdir(parents=True, exist_ok=True)
         self.last_version_diff = None  # Set after each import if a prior version is detected
         self.last_content_warning = None  # Set after each import if content doesn't match title
@@ -154,7 +171,7 @@ class DocumentImporter:
             return result
 
         # Create import batch
-        batch_id = db.create_import_batch(str(source_dir))
+        batch_id = self.db.create_import_batch(str(source_dir))
 
         iterator = tqdm(pdf_files, desc="Importing", disable=not progress)
 
@@ -172,7 +189,7 @@ class DocumentImporter:
                 file_hash = self.calculate_hash(pdf_path)
 
                 # Check for duplicate
-                if db.document_exists(file_hash):
+                if self.db.document_exists(file_hash):
                     result.duplicates += 1
                     logger.debug(f"Duplicate skipped: {pdf_path.name}")
                     continue
@@ -196,7 +213,7 @@ class DocumentImporter:
                 logger.error(f"Error importing {pdf_path}: {e}")
 
         # Update batch record
-        db.update_import_batch(
+        self.db.update_import_batch(
             batch_id,
             total_files=result.total_files,
             imported=result.imported,
@@ -231,7 +248,7 @@ class DocumentImporter:
         try:
             file_hash = self.calculate_hash(file_path)
 
-            if db.document_exists(file_hash):
+            if self.db.document_exists(file_hash):
                 logger.info(f"Document already exists: {file_path.name}")
                 return None
 
@@ -281,7 +298,7 @@ class DocumentImporter:
                 filename += ".pdf"
 
             # Save to temp location
-            temp_path = config.base_dir / "temp" / filename
+            temp_path = self.config.base_dir / "temp" / filename
             temp_path.parent.mkdir(parents=True, exist_ok=True)
 
             with open(temp_path, "wb") as f:
@@ -341,7 +358,7 @@ class DocumentImporter:
         shutil.copy2(source_path, archive_path)
 
         # Add to database
-        doc_id = db.add_document(
+        doc_id = self.db.add_document(
             file_hash=file_hash,
             title=metadata.get("title", source_path.stem),
             document_type=metadata.get("document_type", "other"),
@@ -354,15 +371,15 @@ class DocumentImporter:
         )
 
         # Extract text
-        if config.get("import.extract_text", True):
-            success, extracted_path, _ = extractor.extract(archive_path, doc_id)
+        if self.config.get("import.extract_text", True):
+            success, extracted_path, _ = self.extractor.extract(archive_path, doc_id)
             if success and extracted_path:
                 # Read extracted text and store in DB for FTS
                 try:
                     extracted_text = extracted_path.read_text(encoding="utf-8")[:100000]
                 except Exception:
                     extracted_text = None
-                db.update_document(
+                self.db.update_document(
                     doc_id,
                     extracted_path=str(extracted_path),
                     extracted_text=extracted_text,
