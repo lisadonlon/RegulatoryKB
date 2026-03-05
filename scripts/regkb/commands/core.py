@@ -182,7 +182,9 @@ def add(
 @click.option(
     "-n", "--limit", default=20, type=click.IntRange(1, 1000), help="Maximum results (1-1000)"
 )
-def list_docs(doc_type: Optional[str], jurisdiction: Optional[str], all_versions: bool, limit: int) -> None:
+def list_docs(
+    doc_type: Optional[str], jurisdiction: Optional[str], all_versions: bool, limit: int
+) -> None:
     """List documents in the knowledge base."""
     db = get_db()
 

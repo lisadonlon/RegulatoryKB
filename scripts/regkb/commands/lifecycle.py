@@ -10,7 +10,12 @@ from tqdm import tqdm
 
 from regkb.acquisition_list import export_acquisition_csv, get_acquisition_list_flat
 from regkb.config import config
-from regkb.gap_analysis import export_gap_report_csv, get_gap_summary, print_gap_report, run_gap_analysis
+from regkb.gap_analysis import (
+    export_gap_report_csv,
+    get_gap_summary,
+    print_gap_report,
+    run_gap_analysis,
+)
 from regkb.services import get_db, get_downloader, get_extractor, get_importer, get_search_engine
 from regkb.version_tracker import (
     check_all_versions,
@@ -494,8 +499,12 @@ def gap_analysis(
     default=True,
     help="Download only mandatory documents (default)",
 )
-@click.option("--all", "download_all", is_flag=True, help="Download all documents including optional")
-@click.option("--import/--no-import", "do_import", default=True, help="Import downloaded files to KB")
+@click.option(
+    "--all", "download_all", is_flag=True, help="Download all documents including optional"
+)
+@click.option(
+    "--import/--no-import", "do_import", default=True, help="Import downloaded files to KB"
+)
 @click.option(
     "--delay",
     default=1.5,
@@ -527,7 +536,9 @@ def download_docs(
         click.echo("No documents to download with current filters.")
         return
 
-    click.echo(click.style(f"\nDownloading {len(docs)} documents...\n", fg="bright_white", bold=True))
+    click.echo(
+        click.style(f"\nDownloading {len(docs)} documents...\n", fg="bright_white", bold=True)
+    )
 
     def progress(current, total, message):
         click.echo(f"[{current}/{total}] {message}")

@@ -62,7 +62,9 @@ def intel_fetch(days: int, raw: bool, export_path: Optional[str]) -> None:
         f"      Found {fetch_result.total_entries} entries from {fetch_result.sources_fetched} sources"
     )
     if fetch_result.errors:
-        click.echo(click.style(f"      {len(fetch_result.errors)} errors during fetch", fg="yellow"))
+        click.echo(
+            click.style(f"      {len(fetch_result.errors)} errors during fetch", fg="yellow")
+        )
     if not fetch_result.entries:
         click.echo(click.style("No entries found.", fg="yellow"))
         return
@@ -118,7 +120,9 @@ def intel_fetch(days: int, raw: bool, export_path: Optional[str]) -> None:
         click.echo(f"Total: {len(entries_to_show)} entries")
 
 
-def _print_intel_entry(entry, alert_level: Optional[str] = None, keywords: Optional[list] = None) -> None:
+def _print_intel_entry(
+    entry, alert_level: Optional[str] = None, keywords: Optional[list] = None
+) -> None:
     if alert_level == "critical":
         prefix = click.style("[!!!] ", fg="red", bold=True)
     elif alert_level == "high":
@@ -135,7 +139,9 @@ def _print_intel_entry(entry, alert_level: Optional[str] = None, keywords: Optio
         click.echo(click.style(f"      Keywords: {kw_str}", fg="green"))
 
 
-def _export_intel_csv(entries, export_path: str, filtered_result: Optional[FilterResult] = None) -> None:
+def _export_intel_csv(
+    entries, export_path: str, filtered_result: Optional[FilterResult] = None
+) -> None:
     import csv
 
     path = Path(export_path)
@@ -160,7 +166,17 @@ def _export_intel_csv(entries, export_path: str, filtered_result: Optional[Filte
                 )
         else:
             for entry in entries:
-                writer.writerow([entry.date, entry.agency, entry.category, entry.title, entry.link or "", "", ""])
+                writer.writerow(
+                    [
+                        entry.date,
+                        entry.agency,
+                        entry.category,
+                        entry.title,
+                        entry.link or "",
+                        "",
+                        "",
+                    ]
+                )
 
 
 @intel.command("status")
@@ -186,7 +202,9 @@ def intel_status() -> None:
 
 
 @intel.command("sync")
-@click.option("-d", "--days", default=7, type=click.IntRange(1, 365), help="Days to look back (1-365)")
+@click.option(
+    "-d", "--days", default=7, type=click.IntRange(1, 365), help="Days to look back (1-365)"
+)
 @click.option("--export", "export_path", type=click.Path(), help="Export report to HTML file")
 @click.option("--queue-downloads", is_flag=True, help="Queue downloadable items for approval")
 def intel_sync(days: int, export_path: Optional[str], queue_downloads: bool) -> None:
@@ -223,7 +241,9 @@ def intel_sync(days: int, export_path: Optional[str], queue_downloads: bool) -> 
     if queue_downloads:
         queued = kb_analyzer.queue_for_approval(analysis.results)
         if queued > 0:
-            click.echo(click.style(f"      Queued {queued} items for download approval", fg="green"))
+            click.echo(
+                click.style(f"      Queued {queued} items for download approval", fg="green")
+            )
 
     if export_path:
         _export_intel_report(filtered_result, analysis, export_path, days)
@@ -260,7 +280,9 @@ def intel_sync(days: int, export_path: Optional[str], queue_downloads: bool) -> 
         click.echo(click.style("\nTip: Use --export report.html to save full report", fg="yellow"))
 
 
-def _export_intel_report(filtered_result: FilterResult, analysis, export_path: str, days: int) -> None:
+def _export_intel_report(
+    filtered_result: FilterResult, analysis, export_path: str, days: int
+) -> None:
     from datetime import datetime
 
     path = Path(export_path)
@@ -309,7 +331,7 @@ def _export_intel_report(filtered_result: FilterResult, analysis, export_path: s
             </div>\n"""
 
     for category, entries in sorted(by_category.items(), key=lambda x: -len(x[1])):
-        html += f'<h2><span class=\"category\">{category}</span> ({len(entries)} updates)</h2>\n'
+        html += f'<h2><span class="category">{category}</span> ({len(entries)} updates)</h2>\n'
         for fe in entries[:20]:
             html += f"""<div class=\"entry\">
                 <strong>{fe.entry.title}</strong><br>
@@ -337,7 +359,9 @@ def intel_pending(show_all: bool) -> None:
     click.echo(click.style("\nPending Downloads", fg="bright_white", bold=True))
     click.echo("=" * 50)
 
-    statuses = ["pending", "approved", "rejected", "downloaded", "failed"] if show_all else ["pending"]
+    statuses = (
+        ["pending", "approved", "rejected", "downloaded", "failed"] if show_all else ["pending"]
+    )
     total = 0
     for status in statuses:
         pending = kb_analyzer.get_pending(status)
@@ -351,13 +375,21 @@ def intel_pending(show_all: bool) -> None:
             "downloaded": "cyan",
             "failed": "red",
         }
-        click.echo(click.style(f"\n{status.upper()} ({len(pending)}):", fg=status_colors.get(status, "white"), bold=True))
+        click.echo(
+            click.style(
+                f"\n{status.upper()} ({len(pending)}):",
+                fg=status_colors.get(status, "white"),
+                bold=True,
+            )
+        )
 
         for item in pending:
             click.echo(f"\n  [{item.id}] {item.title}")
             click.echo(f"      {item.agency} | {item.date} | Score: {item.relevance_score:.2f}")
             if item.keywords:
-                click.echo(click.style(f"      Keywords: {', '.join(item.keywords[:5])}", fg="green"))
+                click.echo(
+                    click.style(f"      Keywords: {', '.join(item.keywords[:5])}", fg="green")
+                )
             click.echo(click.style(f"      {item.url}", fg="blue"))
 
     if total == 0:
@@ -399,7 +431,12 @@ def intel_reject(ids: tuple) -> None:
 
 
 @intel.command("download")
-@click.option("--delay", default=2.0, type=click.FloatRange(0.0, 60.0), help="Delay between downloads (0-60 seconds)")
+@click.option(
+    "--delay",
+    default=2.0,
+    type=click.FloatRange(0.0, 60.0),
+    help="Delay between downloads (0-60 seconds)",
+)
 def intel_download(delay: float) -> None:
     import time
 
@@ -409,7 +446,9 @@ def intel_download(delay: float) -> None:
         click.echo("Run: regkb intel sync")
         return
 
-    click.echo(click.style(f"\nDownloading {len(approved)} documents", fg="bright_white", bold=True))
+    click.echo(
+        click.style(f"\nDownloading {len(approved)} documents", fg="bright_white", bold=True)
+    )
     click.echo("=" * 50)
     success_count = 0
     fail_count = 0
@@ -497,19 +536,39 @@ def _infer_doc_type(category: str) -> str:
 
 
 @intel.command("summary")
-@click.option("-d", "--days", default=7, type=click.IntRange(1, 365), help="Days to look back (1-365)")
-@click.option("-n", "--limit", default=10, type=click.IntRange(1, 50), help="Max entries to summarize (1-50)")
-@click.option("--style", type=click.Choice(["layperson", "technical", "brief"]), default="layperson", help="Summary style")
+@click.option(
+    "-d", "--days", default=7, type=click.IntRange(1, 365), help="Days to look back (1-365)"
+)
+@click.option(
+    "-n", "--limit", default=10, type=click.IntRange(1, 50), help="Max entries to summarize (1-50)"
+)
+@click.option(
+    "--style",
+    type=click.Choice(["layperson", "technical", "brief"]),
+    default="layperson",
+    help="Summary style",
+)
 @click.option("--high-priority-only", is_flag=True, help="Only summarize high-priority items")
 @click.option("--export", "export_path", type=click.Path(), help="Export summaries to HTML file")
 @click.option("--no-cache", is_flag=True, help="Bypass summary cache")
-def intel_summary(days: int, limit: int, style: str, high_priority_only: bool, export_path: Optional[str], no_cache: bool) -> None:
-    click.echo(click.style("\nRegulatory Intelligence - Summary Generation", fg="bright_white", bold=True))
+def intel_summary(
+    days: int,
+    limit: int,
+    style: str,
+    high_priority_only: bool,
+    export_path: Optional[str],
+    no_cache: bool,
+) -> None:
+    click.echo(
+        click.style("\nRegulatory Intelligence - Summary Generation", fg="bright_white", bold=True)
+    )
     click.echo("=" * 50)
     import os
 
     if not os.environ.get("ANTHROPIC_API_KEY"):
-        click.echo(click.style("\nError: ANTHROPIC_API_KEY environment variable not set.", fg="red"))
+        click.echo(
+            click.style("\nError: ANTHROPIC_API_KEY environment variable not set.", fg="red")
+        )
         click.echo("Set it with: set ANTHROPIC_API_KEY=your-api-key")
         click.echo("\nYou can get an API key from: https://console.anthropic.com/")
         return
@@ -671,16 +730,32 @@ def intel_cache(clear: bool, show_stats: bool) -> None:
 
 
 @intel.command("email")
-@click.option("-d", "--days", default=7, type=click.IntRange(1, 365), help="Days to look back (1-365)")
-@click.option("--type", "email_type", type=click.Choice(["weekly", "daily", "test"]), default="weekly", help="Email type")
-@click.option("--to", "recipients", multiple=True, help="Override recipients (can specify multiple)")
+@click.option(
+    "-d", "--days", default=7, type=click.IntRange(1, 365), help="Days to look back (1-365)"
+)
+@click.option(
+    "--type",
+    "email_type",
+    type=click.Choice(["weekly", "daily", "test"]),
+    default="weekly",
+    help="Email type",
+)
+@click.option(
+    "--to", "recipients", multiple=True, help="Override recipients (can specify multiple)"
+)
 @click.option("--dry-run", is_flag=True, help="Generate email but don't send (saves to file)")
-@click.option("-n", "--limit", default=20, type=click.IntRange(1, 50), help="Max entries to include")
+@click.option(
+    "-n", "--limit", default=20, type=click.IntRange(1, 50), help="Max entries to include"
+)
 def intel_email(days: int, email_type: str, recipients: tuple, dry_run: bool, limit: int) -> None:
-    from datetime import datetime, timedelta
     import os
+    from datetime import datetime, timedelta
 
-    click.echo(click.style(f"\nRegulatory Intelligence - {email_type.title()} Email", fg="bright_white", bold=True))
+    click.echo(
+        click.style(
+            f"\nRegulatory Intelligence - {email_type.title()} Email", fg="bright_white", bold=True
+        )
+    )
     click.echo("=" * 50)
 
     if email_type == "test":
@@ -700,7 +775,9 @@ def intel_email(days: int, email_type: str, recipients: tuple, dry_run: bool, li
         click.echo("Set environment variables:")
         click.echo("  set SMTP_USERNAME=your-email@gmail.com")
         click.echo("  set SMTP_PASSWORD=your-app-password")
-        click.echo("\nFor Gmail, use an App Password: https://support.google.com/accounts/answer/185833")
+        click.echo(
+            "\nFor Gmail, use an App Password: https://support.google.com/accounts/answer/185833"
+        )
         click.echo("\nOr use --dry-run to generate email without sending.")
         return
 
@@ -728,7 +805,9 @@ def intel_email(days: int, email_type: str, recipients: tuple, dry_run: bool, li
         return
 
     click.echo("\n[3/4] Generating summaries...")
-    entries_to_process = filtered_result.high_priority if email_type == "daily" else filtered_result.included[:limit]
+    entries_to_process = (
+        filtered_result.high_priority if email_type == "daily" else filtered_result.included[:limit]
+    )
     entries_with_summaries = []
     has_api_key = bool(os.environ.get("ANTHROPIC_API_KEY"))
     if has_api_key:
@@ -748,7 +827,9 @@ def intel_email(days: int, email_type: str, recipients: tuple, dry_run: bool, li
     end_date = datetime.now()
     start_date = end_date - timedelta(days=days)
     date_range = f"{start_date.strftime('%b %d')} - {end_date.strftime('%b %d, %Y')}"
-    high_priority_with_summaries = [(e, s) for e, s in entries_with_summaries if e in filtered_result.high_priority]
+    high_priority_with_summaries = [
+        (e, s) for e, s in entries_with_summaries if e in filtered_result.high_priority
+    ]
     recipient_list = list(recipients) if recipients else None
 
     if dry_run:
@@ -781,7 +862,9 @@ def intel_email(days: int, email_type: str, recipients: tuple, dry_run: bool, li
                     </div>
                 </div>
                 """
-            html = DAILY_ALERT_TEMPLATE.format(date=datetime.now().strftime("%B %d, %Y"), alerts_content=alerts_content)
+            html = DAILY_ALERT_TEMPLATE.format(
+                date=datetime.now().strftime("%B %d, %Y"), alerts_content=alerts_content
+            )
 
         with open(output_file, "w", encoding="utf-8") as f:
             f.write(html)
@@ -797,7 +880,9 @@ def intel_email(days: int, email_type: str, recipients: tuple, dry_run: bool, li
             recipients=recipient_list,
         )
     else:
-        result = intel_emailer.send_daily_alert(alerts=high_priority_with_summaries, recipients=recipient_list)
+        result = intel_emailer.send_daily_alert(
+            alerts=high_priority_with_summaries, recipients=recipient_list
+        )
 
     click.echo(click.style(f"\n{'=' * 50}", fg="cyan"))
     if result.success:
@@ -812,8 +897,8 @@ def intel_email(days: int, email_type: str, recipients: tuple, dry_run: bool, li
 @click.option("--email/--no-email", default=False, help="Send email after processing")
 @click.option("--export", "export_path", type=click.Path(), help="Export report to file")
 def intel_run(days: int, email: bool, export_path: Optional[str]) -> None:
-    from datetime import datetime, timedelta
     import os
+    from datetime import datetime, timedelta
 
     click.echo(click.style("\nRegulatory Intelligence Agent", fg="bright_white", bold=True))
     click.echo("=" * 50)
@@ -873,14 +958,20 @@ def intel_run(days: int, email: bool, export_path: Optional[str]) -> None:
             end_date = datetime.now()
             start_date = end_date - timedelta(days=days)
             date_range = f"{start_date.strftime('%b %d')} - {end_date.strftime('%b %d, %Y')}"
-            high_priority_with_summaries = [(e, s) for e, s in entries_with_summaries if e in filtered_result.high_priority]
+            high_priority_with_summaries = [
+                (e, s) for e, s in entries_with_summaries if e in filtered_result.high_priority
+            ]
             result = intel_emailer.send_weekly_digest(
                 entries_with_summaries=entries_with_summaries,
                 high_priority=high_priority_with_summaries,
                 date_range=date_range,
             )
             if result.success:
-                click.echo(click.style(f"      Email sent to {result.recipients_sent} recipients", fg="green"))
+                click.echo(
+                    click.style(
+                        f"      Email sent to {result.recipients_sent} recipients", fg="green"
+                    )
+                )
             else:
                 click.echo(click.style(f"      Email failed: {result.error}", fg="red"))
 
@@ -892,16 +983,33 @@ def intel_run(days: int, email: bool, export_path: Optional[str]) -> None:
 
 
 @intel.command("setup")
-@click.option("--type", "-t", "setup_type", type=click.Choice(["batch", "taskxml", "imap", "all"]), default="batch", help="Type of setup files to generate")
-@click.option("--schedule", "-s", type=click.Choice(["weekly", "daily", "monthly"]), default="weekly", help="Schedule type for Task Scheduler XML")
-@click.option("--output", "-o", type=click.Path(path_type=Path), help="Output directory for generated files")
+@click.option(
+    "--type",
+    "-t",
+    "setup_type",
+    type=click.Choice(["batch", "taskxml", "imap", "all"]),
+    default="batch",
+    help="Type of setup files to generate",
+)
+@click.option(
+    "--schedule",
+    "-s",
+    type=click.Choice(["weekly", "daily", "monthly"]),
+    default="weekly",
+    help="Schedule type for Task Scheduler XML",
+)
+@click.option(
+    "--output", "-o", type=click.Path(path_type=Path), help="Output directory for generated files"
+)
 def intel_setup(setup_type: str, schedule: str, output: Optional[Path]) -> None:
     output_dir = output or config.base_dir
     files_created = []
 
     if setup_type in ("batch", "all"):
         for script_type in ["weekly", "daily", "monthly"]:
-            script_content = generate_batch_script(script_type=script_type, include_email=True, export_report=True)
+            script_content = generate_batch_script(
+                script_type=script_type, include_email=True, export_report=True
+            )
             script_path = output_dir / f"run_intel_{script_type}.bat"
             with open(script_path, "w") as f:
                 f.write(script_content)
@@ -918,7 +1026,9 @@ def intel_setup(setup_type: str, schedule: str, output: Optional[Path]) -> None:
         files_created.append(imap_path)
 
     if setup_type in ("taskxml", "all"):
-        xml_content = generate_windows_task_xml(task_name=f"RegulatoryKB_Intel_{schedule.title()}", schedule=schedule)
+        xml_content = generate_windows_task_xml(
+            task_name=f"RegulatoryKB_Intel_{schedule.title()}", schedule=schedule
+        )
         xml_path = output_dir / f"task_intel_{schedule}.xml"
         with open(xml_path, "w", encoding="utf-16") as f:
             f.write(xml_content)
@@ -938,7 +1048,9 @@ def intel_setup(setup_type: str, schedule: str, output: Optional[Path]) -> None:
         click.echo("  4. Run run_intel_imap.bat to start polling for digest replies")
     if setup_type in ("taskxml", "all"):
         click.echo("  5. Import Task Scheduler XML:")
-        click.echo(f'     schtasks /create /xml "{output_dir / f"task_intel_{schedule}.xml"}" /tn "RegulatoryKB_Intel"')
+        click.echo(
+            f'     schtasks /create /xml "{output_dir / f"task_intel_{schedule}.xml"}" /tn "RegulatoryKB_Intel"'
+        )
 
 
 @intel.command("schedule-status")
@@ -946,9 +1058,15 @@ def intel_schedule_status() -> None:
     click.echo(click.style("Scheduler State", fg="cyan", bold=True))
     click.echo("=" * 40)
     click.echo("\nLast Runs:")
-    click.echo(f"  Weekly:  {scheduler_state.last_weekly_run.strftime('%Y-%m-%d %H:%M') if scheduler_state.last_weekly_run else 'Never'}")
-    click.echo(f"  Daily:   {scheduler_state.last_daily_run.strftime('%Y-%m-%d %H:%M') if scheduler_state.last_daily_run else 'Never'}")
-    click.echo(f"  Monthly: {scheduler_state.last_monthly_run.strftime('%Y-%m-%d %H:%M') if scheduler_state.last_monthly_run else 'Never'}")
+    click.echo(
+        f"  Weekly:  {scheduler_state.last_weekly_run.strftime('%Y-%m-%d %H:%M') if scheduler_state.last_weekly_run else 'Never'}"
+    )
+    click.echo(
+        f"  Daily:   {scheduler_state.last_daily_run.strftime('%Y-%m-%d %H:%M') if scheduler_state.last_daily_run else 'Never'}"
+    )
+    click.echo(
+        f"  Monthly: {scheduler_state.last_monthly_run.strftime('%Y-%m-%d %H:%M') if scheduler_state.last_monthly_run else 'Never'}"
+    )
 
     click.echo("\nShould Run Now:")
     click.echo(f"  Weekly:  {'Yes' if scheduler_state.should_run_weekly() else 'No'}")
@@ -1002,7 +1120,9 @@ def intel_poll(once: bool, no_confirm: bool) -> None:
             click.echo(f"  [{seq}] {download.entry.title[:50]}...{kb_id}")
 
     if result.needs_manual:
-        click.echo(click.style(f"\nNEEDS MANUAL URL ({len(result.needs_manual)}):", fg="yellow", bold=True))
+        click.echo(
+            click.style(f"\nNEEDS MANUAL URL ({len(result.needs_manual)}):", fg="yellow", bold=True)
+        )
         for download in result.needs_manual:
             seq = download.entry.entry_id.split("-")[-1]
             click.echo(f"  [{seq}] {download.entry.title[:50]}...")
@@ -1029,7 +1149,9 @@ def intel_poll(once: bool, no_confirm: bool) -> None:
             if email_result.success:
                 click.echo(click.style("Confirmation email sent.", fg="green"))
             else:
-                click.echo(click.style(f"Failed to send confirmation: {email_result.error}", fg="red"))
+                click.echo(
+                    click.style(f"Failed to send confirmation: {email_result.error}", fg="red")
+                )
 
     click.echo(f"\n{'=' * 50}")
     click.echo(
@@ -1046,7 +1168,9 @@ def intel_resolve_url(url: str) -> None:
 
     result = url_resolver.resolve(url)
     click.echo("\nResolution Result:")
-    click.echo(f"  Success:       {click.style('Yes', fg='green') if result.success else click.style('No', fg='red')}")
+    click.echo(
+        f"  Success:       {click.style('Yes', fg='green') if result.success else click.style('No', fg='red')}"
+    )
     click.echo(f"  Resolved URL:  {result.resolved_url or 'N/A'}")
     click.echo(f"  Domain:        {result.domain or 'N/A'}")
     click.echo(f"  Document Type: {result.document_type or 'unknown'}")
