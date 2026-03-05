@@ -319,6 +319,36 @@ intelligence:
     enabled: true
     timezone: "Europe/Dublin"
 
+  # NotebookLM automation hooks (Phase 3 integration)
+  # All hooks are opt-in (default disabled), non-fatal, and run via asyncio.to_thread()
+  notebooklm:
+    # Auto-generate NotebookLM artifacts after weekly digest email
+    auto_generate: true
+    artifact_types:
+      - "report"
+
+    # Daily keep-alive to delay session expiry
+    keepalive:
+      enabled: true
+      time: "12:00"
+
+    # Monthly competitive intelligence refresh (1st of month)
+    # Calls PraxisVerify notebooklm_competitive.refresh_insights()
+    competitive_refresh:
+      enabled: true
+      day: 1
+      time: "10:00"
+
+    # Weekly training MCQ generation (Sunday evening)
+    # Calls medtech-docs notebooklm_training.mcq_pipeline() per topic
+    training:
+      enabled: true
+      topics:
+        - "eu-mdr-gspr"
+      refresh_days: 30
+      day: "sunday"
+      time: "20:00"
+
   # Reply processing settings (for Phase 6)
   # Enables downloading documents by replying to digest emails
   reply_processing:

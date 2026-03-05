@@ -1,8 +1,9 @@
 """Tests for scheduler job definitions."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from regkb.scheduler.jobs import _is_auth_failure
 
 
 class TestWeeklyDigestJob:
@@ -69,3 +70,116 @@ class TestImapPollJob:
 
         with patch("regkb.scheduler.jobs.asyncio.to_thread", return_value=None):
             await imap_poll_job()
+
+
+class TestIsAuthFailure:
+    def test_detects_authentication_keyword(self):
+        assert _is_auth_failure(Exception("Authentication failed")) is True
+
+    def test_detects_expired_keyword(self):
+        assert _is_auth_failure(Exception("Session expired")) is True
+
+    def test_detects_login_keyword(self):
+        assert _is_auth_failure(Exception("Please login again")) is True
+
+    def test_detects_storage_state_keyword(self):
+        assert _is_auth_failure(Exception("storage_state.json not found")) is True
+
+    def test_ignores_unrelated_error(self):
+        assert _is_auth_failure(Exception("Network timeout")) is False
+
+    def test_case_insensitive(self):
+        assert _is_auth_failure(Exception("AUTHENTICATION ERROR")) is True
+
+
+class TestNotebooklmKeepaliveJob:
+    @pytest.mark.asyncio
+    async def test_skips_when_disabled(self):
+        from regkb.scheduler.jobs import notebooklm_keepalive_job
+
+        mock_config = MagicMock()
+        mock_config.get.return_value = False
+
+        with patch("regkb.scheduler.jobs.asyncio.to_thread") as mock_thread:
+            with patch("regkb.config.config", mock_config):
+                await notebooklm_keepalive_job()
+            mock_thread.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_auth_success_logs_alive(self):
+        from regkb.scheduler.jobs import notebooklm_keepalive_job
+
+        mock_config = MagicMock()
+        mock_config.get.return_value = True
+
+        with patch("regkb.scheduler.jobs.asyncio.to_thread", return_value=True):
+            with patch("regkb.config.config", mock_config):
+                await notebooklm_keepalive_job()
+
+    @pytest.mark.asyncio
+    async def test_auth_failure_sends_telegram_alert(self):
+        from regkb.scheduler.jobs import notebooklm_keepalive_job
+
+        mock_config = MagicMock()
+        mock_config.get.return_value = True
+
+        mock_notify = AsyncMock()
+
+        with patch("regkb.scheduler.jobs.asyncio.to_thread", return_value=False):
+            with patch("regkb.config.config", mock_config):
+                with patch(
+                    "regkb.telegram.notifications.notify_notebooklm_auth_failure",
+                    mock_notify,
+                ):
+                    await notebooklm_keepalive_job()
+
+        mock_notify.assert_awaited_once_with("Keep-Alive Check")
+
+    @pytest.mark.asyncio
+    async def test_exception_with_auth_keyword_sends_alert(self):
+        from regkb.scheduler.jobs import notebooklm_keepalive_job
+
+        mock_config = MagicMock()
+        mock_config.get.return_value = True
+
+        mock_notify = AsyncMock()
+
+        with patch(
+            "regkb.scheduler.jobs.asyncio.to_thread",
+            side_effect=Exception("authentication expired"),
+        ):
+            with patch("regkb.config.config", mock_config):
+                with patch(
+                    "regkb.telegram.notifications.notify_notebooklm_auth_failure",
+                    mock_notify,
+                ):
+                    await notebooklm_keepalive_job()
+
+        mock_notify.assert_awaited_once_with("Keep-Alive Check")
+
+
+class TestNotebooklmExportAuthAlert:
+    @pytest.mark.asyncio
+    async def test_auth_failure_triggers_telegram(self):
+        from regkb.scheduler.jobs import _trigger_notebooklm_export
+
+        mock_config = MagicMock()
+        mock_config.get.side_effect = lambda key, default=None: {
+            "intelligence.notebooklm.auto_generate": True,
+            "intelligence.notebooklm.artifact_types": ["report"],
+        }.get(key, default)
+
+        mock_notify = AsyncMock()
+
+        with patch(
+            "regkb.scheduler.jobs.asyncio.to_thread",
+            side_effect=Exception("Session expired"),
+        ):
+            with patch("regkb.config.config", mock_config):
+                with patch(
+                    "regkb.telegram.notifications.notify_notebooklm_auth_failure",
+                    mock_notify,
+                ):
+                    await _trigger_notebooklm_export()
+
+        mock_notify.assert_awaited_once_with("NotebookLM Export")

@@ -28,6 +28,9 @@ def create_scheduler() -> AsyncIOScheduler:
     _add_weekly_digest_job(scheduler)
     _add_daily_alert_job(scheduler)
     _add_imap_poll_job(scheduler)
+    _add_monthly_competitive_job(scheduler)
+    _add_training_mcq_job(scheduler)
+    _add_notebooklm_keepalive_job(scheduler)
 
     # Register error handler
     from regkb.scheduler.error_handler import job_error_listener
@@ -96,6 +99,71 @@ def _add_imap_poll_job(scheduler: AsyncIOScheduler) -> None:
         replace_existing=True,
     )
     logger.info("IMAP poll scheduled every %d minutes", poll_interval)
+
+
+def _add_monthly_competitive_job(scheduler: AsyncIOScheduler) -> None:
+    """Add monthly competitive intelligence refresh job if enabled."""
+    if not config.get("intelligence.notebooklm.competitive_refresh.enabled", False):
+        return
+
+    from regkb.scheduler.jobs import monthly_competitive_refresh_job
+
+    day = config.get("intelligence.notebooklm.competitive_refresh.day", 1)
+    time_str = config.get("intelligence.notebooklm.competitive_refresh.time", "10:00")
+    hour, minute = _parse_time(time_str)
+
+    scheduler.add_job(
+        monthly_competitive_refresh_job,
+        CronTrigger(day=day, hour=hour, minute=minute),
+        id="monthly_competitive_refresh",
+        name="Monthly Competitive Intelligence Refresh",
+        misfire_grace_time=3600,
+        replace_existing=True,
+    )
+    logger.info("Monthly competitive refresh scheduled: day %d at %s", day, time_str)
+
+
+def _add_training_mcq_job(scheduler: AsyncIOScheduler) -> None:
+    """Add weekly training MCQ generation job if enabled."""
+    if not config.get("intelligence.notebooklm.training.enabled", False):
+        return
+
+    from regkb.scheduler.jobs import training_mcq_job
+
+    day = config.get("intelligence.notebooklm.training.day", "sunday")
+    time_str = config.get("intelligence.notebooklm.training.time", "20:00")
+    hour, minute = _parse_time(time_str)
+
+    scheduler.add_job(
+        training_mcq_job,
+        CronTrigger(day_of_week=_day_to_cron(day), hour=hour, minute=minute),
+        id="training_mcq",
+        name="Weekly Training MCQ Generation",
+        misfire_grace_time=3600,
+        replace_existing=True,
+    )
+    logger.info("Training MCQ generation scheduled: %s at %s", day, time_str)
+
+
+def _add_notebooklm_keepalive_job(scheduler: AsyncIOScheduler) -> None:
+    """Add daily NotebookLM keep-alive job if enabled."""
+    if not config.get("intelligence.notebooklm.keepalive.enabled", False):
+        return
+
+    from regkb.scheduler.jobs import notebooklm_keepalive_job
+
+    time_str = config.get("intelligence.notebooklm.keepalive.time", "12:00")
+    hour, minute = _parse_time(time_str)
+
+    scheduler.add_job(
+        notebooklm_keepalive_job,
+        CronTrigger(hour=hour, minute=minute),
+        id="notebooklm_keepalive",
+        name="Daily NotebookLM Keep-Alive",
+        misfire_grace_time=3600,
+        replace_existing=True,
+    )
+    logger.info("NotebookLM keep-alive scheduled daily at %s", time_str)
 
 
 def _parse_time(time_str: str) -> tuple[int, int]:

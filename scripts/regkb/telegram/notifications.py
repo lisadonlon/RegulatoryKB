@@ -76,6 +76,25 @@ async def notify_digest_sent(entry_count: int, recipients: int):
             logger.exception("Failed to send digest notification to %d", chat_id)
 
 
+async def notify_notebooklm_auth_failure(job_name: str):
+    """Send notification when NotebookLM auth has expired and needs re-authentication."""
+    if not _bot:
+        logger.debug("Telegram bot not configured — skipping auth failure notification")
+        return
+
+    message = (
+        f"🔑 NotebookLM Auth Expired\n\n"
+        f"Job: {job_name}\n"
+        f"Action: Run `notebooklm login` in PowerShell to re-authenticate."
+    )
+
+    for chat_id in _get_chat_ids():
+        try:
+            await _bot.send_message(chat_id=chat_id, text=message)
+        except Exception:
+            logger.exception("Failed to send auth failure notification to %d", chat_id)
+
+
 async def notify_new_pending(count: int):
     """Notify about new items added to pending queue."""
     if not _bot:

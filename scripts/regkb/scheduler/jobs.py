@@ -7,9 +7,19 @@ in asyncio.to_thread(). Each job checks SchedulerState for idempotency.
 
 import asyncio
 import logging
+import sys
 from datetime import datetime, timedelta
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
+
+_AUTH_FAILURE_KEYWORDS = ("authentication", "expired", "login", "auth", "storage_state")
+
+
+def _is_auth_failure(exc: Exception) -> bool:
+    """Check if an exception is likely a NotebookLM auth expiry."""
+    msg = str(exc).lower()
+    return any(kw in msg for kw in _AUTH_FAILURE_KEYWORDS)
 
 
 async def weekly_digest_job():
@@ -90,6 +100,38 @@ async def weekly_digest_job():
         except ImportError:
             pass
 
+        # Trigger NotebookLM export if enabled and digest was sent successfully
+        if result["email_success"]:
+            await _trigger_notebooklm_export()
+
+
+async def _trigger_notebooklm_export():
+    """Generate NotebookLM artifacts from latest digest (non-fatal, config-gated)."""
+    try:
+        from regkb.config import config
+
+        if not config.get("intelligence.notebooklm.auto_generate", False):
+            return
+
+        artifact_types = config.get("intelligence.notebooklm.artifact_types", ["report"])
+
+        def _run_export():
+            from regkb.notebooklm_export import run_pipeline
+
+            return run_pipeline(days=7, artifact_types=artifact_types)
+
+        result = await asyncio.to_thread(_run_export)
+        logger.info("NotebookLM export complete: %s", result)
+    except Exception as exc:
+        logger.exception("NotebookLM export failed (non-fatal)")
+        if _is_auth_failure(exc):
+            try:
+                from regkb.telegram.notifications import notify_notebooklm_auth_failure
+
+                await notify_notebooklm_auth_failure("NotebookLM Export")
+            except ImportError:
+                pass
+
 
 async def daily_alert_job():
     """Check for critical/high-priority items and send alerts.
@@ -168,3 +210,149 @@ async def imap_poll_job():
 
     if result:
         logger.info("IMAP poll complete: %s", result)
+
+
+async def monthly_competitive_refresh_job():
+    """Refresh competitive intelligence via NotebookLM (non-fatal, config-gated).
+
+    Runs on 1st of each month. Calls PraxisVerify's refresh_insights() via
+    sys.path import since PraxisVerify has no scheduler of its own.
+    """
+    logger.info("Monthly competitive refresh job started")
+
+    try:
+        from regkb.config import config
+
+        if not config.get("intelligence.notebooklm.competitive_refresh.enabled", False):
+            logger.info("Competitive refresh not enabled — skipping")
+            return
+
+        def _run():
+            praxisverify_scripts = str(
+                Path(__file__).resolve().parents[4] / "PraxisVerify" / "scripts"
+            )
+            if praxisverify_scripts not in sys.path:
+                sys.path.insert(0, praxisverify_scripts)
+
+            from notebooklm_competitive import refresh_insights
+
+            return refresh_insights()
+
+        result = await asyncio.to_thread(_run)
+        logger.info("Competitive refresh complete: success=%s", result)
+    except Exception as exc:
+        logger.exception("Monthly competitive refresh failed (non-fatal)")
+        if _is_auth_failure(exc):
+            try:
+                from regkb.telegram.notifications import notify_notebooklm_auth_failure
+
+                await notify_notebooklm_auth_failure("Monthly Competitive Refresh")
+            except ImportError:
+                pass
+
+
+async def training_mcq_job():
+    """Generate MCQs for stale/missing training topics (non-fatal, config-gated).
+
+    Runs weekly (Sunday evening). Only generates for topics where the MCQ JSON
+    file is older than refresh_days or missing.
+    """
+    logger.info("Training MCQ job started")
+
+    try:
+        from regkb.config import config
+
+        if not config.get("intelligence.notebooklm.training.enabled", False):
+            logger.info("Training MCQ generation not enabled — skipping")
+            return
+
+        topics = config.get("intelligence.notebooklm.training.topics", ["eu-mdr-gspr"])
+        refresh_days = config.get("intelligence.notebooklm.training.refresh_days", 30)
+
+        def _run():
+            medtech_scripts = str(Path(__file__).resolve().parents[4] / "medtech-docs" / "scripts")
+            if medtech_scripts not in sys.path:
+                sys.path.insert(0, medtech_scripts)
+
+            from notebooklm_training import MCQ_OUTPUT_DIR, mcq_pipeline
+
+            generated = []
+            for topic in topics:
+                mcq_path = MCQ_OUTPUT_DIR / f"{topic}_mcqs.json"
+                if mcq_path.exists():
+                    age_days = (
+                        datetime.now() - datetime.fromtimestamp(mcq_path.stat().st_mtime)
+                    ).days
+                    if age_days < refresh_days:
+                        logger.info(
+                            "Topic %s MCQs are fresh (%d days old) — skipping",
+                            topic,
+                            age_days,
+                        )
+                        continue
+
+                logger.info("Generating MCQs for topic: %s", topic)
+                result = mcq_pipeline(topic)
+                if result:
+                    generated.append(topic)
+
+            return generated
+
+        generated = await asyncio.to_thread(_run)
+        logger.info("Training MCQ generation complete: %s", generated)
+    except Exception as exc:
+        logger.exception("Training MCQ generation failed (non-fatal)")
+        if _is_auth_failure(exc):
+            try:
+                from regkb.telegram.notifications import notify_notebooklm_auth_failure
+
+                await notify_notebooklm_auth_failure("Training MCQ Generation")
+            except ImportError:
+                pass
+
+
+async def notebooklm_keepalive_job():
+    """Touch NotebookLM session to delay auth expiry (non-fatal, config-gated).
+
+    Runs daily. Calls shared_lib.notebooklm_utils.check_auth() to verify
+    the browser session is still valid. Sends Telegram alert on failure.
+    """
+    logger.info("NotebookLM keep-alive job started")
+
+    try:
+        from regkb.config import config
+
+        if not config.get("intelligence.notebooklm.keepalive.enabled", False):
+            logger.info("NotebookLM keep-alive not enabled — skipping")
+            return
+
+        def _run():
+            shared_lib_parent = str(Path(__file__).resolve().parents[4])
+            if shared_lib_parent not in sys.path:
+                sys.path.insert(0, shared_lib_parent)
+
+            from shared_lib.notebooklm_utils import check_auth
+
+            return check_auth()
+
+        result = await asyncio.to_thread(_run)
+
+        if result:
+            logger.info("NotebookLM session alive — keep-alive successful")
+        else:
+            logger.warning("NotebookLM session expired — sending alert")
+            try:
+                from regkb.telegram.notifications import notify_notebooklm_auth_failure
+
+                await notify_notebooklm_auth_failure("Keep-Alive Check")
+            except ImportError:
+                pass
+    except Exception as exc:
+        logger.exception("NotebookLM keep-alive failed (non-fatal)")
+        if _is_auth_failure(exc):
+            try:
+                from regkb.telegram.notifications import notify_notebooklm_auth_failure
+
+                await notify_notebooklm_auth_failure("Keep-Alive Check")
+            except ImportError:
+                pass
