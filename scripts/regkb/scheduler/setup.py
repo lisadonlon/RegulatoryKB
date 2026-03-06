@@ -31,6 +31,8 @@ def create_scheduler() -> AsyncIOScheduler:
     _add_monthly_competitive_job(scheduler)
     _add_training_mcq_job(scheduler)
     _add_notebooklm_keepalive_job(scheduler)
+    _add_youtube_research_job(scheduler)
+    _add_research_papers_job(scheduler)
 
     # Register error handler
     from regkb.scheduler.error_handler import job_error_listener
@@ -164,6 +166,50 @@ def _add_notebooklm_keepalive_job(scheduler: AsyncIOScheduler) -> None:
         replace_existing=True,
     )
     logger.info("NotebookLM keep-alive scheduled daily at %s", time_str)
+
+
+def _add_youtube_research_job(scheduler: AsyncIOScheduler) -> None:
+    """Add weekly YouTube research job if enabled."""
+    if not config.get("intelligence.notebooklm.youtube_research.enabled", False):
+        return
+
+    from regkb.scheduler.jobs import youtube_research_job
+
+    day = config.get("intelligence.notebooklm.youtube_research.day", "friday")
+    time_str = config.get("intelligence.notebooklm.youtube_research.time", "18:00")
+    hour, minute = _parse_time(time_str)
+
+    scheduler.add_job(
+        youtube_research_job,
+        CronTrigger(day_of_week=_day_to_cron(day), hour=hour, minute=minute),
+        id="youtube_research",
+        name="Weekly YouTube AI Research",
+        misfire_grace_time=3600,
+        replace_existing=True,
+    )
+    logger.info("YouTube research scheduled: %s at %s", day, time_str)
+
+
+def _add_research_papers_job(scheduler: AsyncIOScheduler) -> None:
+    """Add weekly research papers job if enabled."""
+    if not config.get("intelligence.notebooklm.research_papers.enabled", False):
+        return
+
+    from regkb.scheduler.jobs import research_papers_job
+
+    day = config.get("intelligence.notebooklm.research_papers.day", "saturday")
+    time_str = config.get("intelligence.notebooklm.research_papers.time", "10:00")
+    hour, minute = _parse_time(time_str)
+
+    scheduler.add_job(
+        research_papers_job,
+        CronTrigger(day_of_week=_day_to_cron(day), hour=hour, minute=minute),
+        id="research_papers",
+        name="Weekly Research Papers Discovery",
+        misfire_grace_time=3600,
+        replace_existing=True,
+    )
+    logger.info("Research papers scheduled: %s at %s", day, time_str)
 
 
 def _parse_time(time_str: str) -> tuple[int, int]:

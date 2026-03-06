@@ -339,6 +339,22 @@ intelligence:
       day: 1
       time: "10:00"
 
+    # Weekly research papers discovery (Saturday morning)
+    # Calls AIfirst research_papers agent via sys.path
+    research_papers:
+      enabled: false
+      day: "saturday"
+      time: "10:00"
+      days_back: 7
+
+    # Weekly YouTube AI research (Friday evening)
+    # Calls AIfirst youtube_research agent via sys.path
+    youtube_research:
+      enabled: false
+      day: "friday"
+      time: "18:00"
+      days_back: 7
+
     # Weekly training MCQ generation (Sunday evening)
     # Calls medtech-docs notebooklm_training.mcq_pipeline() per topic
     training:

@@ -311,6 +311,170 @@ async def training_mcq_job():
                 pass
 
 
+async def youtube_research_job():
+    """Fetch new YouTube videos and generate NotebookLM artifacts (non-fatal, config-gated).
+
+    Runs weekly. Calls AIfirst's youtube_research agent via sys.path import.
+    """
+    logger.info("YouTube research job started")
+
+    try:
+        from regkb.config import config
+
+        if not config.get("intelligence.notebooklm.youtube_research.enabled", False):
+            logger.info("YouTube research not enabled — skipping")
+            return
+
+        days_back = config.get("intelligence.notebooklm.youtube_research.days_back", 7)
+
+        def _run():
+            aifirst_root = str(Path(__file__).resolve().parents[4] / "AIfirst")
+            if aifirst_root not in sys.path:
+                sys.path.insert(0, aifirst_root)
+
+            # Also ensure shared_lib is importable
+            projects_root = str(Path(__file__).resolve().parents[4])
+            if projects_root not in sys.path:
+                sys.path.insert(0, projects_root)
+
+            from agents.youtube_research.config import CHANNELS
+            from agents.youtube_research.fetcher import YouTubeFetcher
+            from agents.youtube_research.main import (
+                run_pipeline,
+                save_synthesis_note,
+                save_video_notes,
+                update_moc,
+            )
+
+            if not CHANNELS:
+                logger.info("No YouTube channels configured — skipping")
+                return None
+
+            fetcher = YouTubeFetcher(CHANNELS)
+            videos = fetcher.fetch(days=days_back)
+
+            if not videos:
+                logger.info("No new YouTube videos found")
+                return None
+
+            summary = run_pipeline(videos=videos, use_notebooklm=True, days=days_back)
+            save_video_notes(videos, notebook_id=summary.get("notebook_id"))
+            save_synthesis_note(videos, summary, days=days_back)
+            update_moc(videos)
+
+            return {
+                "video_count": len(videos),
+                "artifacts": len(summary.get("artifacts", [])),
+            }
+
+        result = await asyncio.to_thread(_run)
+        if result:
+            logger.info(
+                "YouTube research complete: %d videos, %d artifacts",
+                result["video_count"],
+                result["artifacts"],
+            )
+        else:
+            logger.info("YouTube research: nothing to process")
+    except Exception as exc:
+        logger.exception("YouTube research failed (non-fatal)")
+        if _is_auth_failure(exc):
+            try:
+                from regkb.telegram.notifications import notify_notebooklm_auth_failure
+
+                await notify_notebooklm_auth_failure("YouTube Research")
+            except ImportError:
+                pass
+
+
+async def research_papers_job():
+    """Fetch academic papers and generate NotebookLM digest (non-fatal, config-gated).
+
+    Runs weekly (Saturday morning). Calls AIfirst's research_papers agent via sys.path.
+    """
+    logger.info("Research papers job started")
+
+    try:
+        from regkb.config import config
+
+        if not config.get("intelligence.notebooklm.research_papers.enabled", False):
+            logger.info("Research papers not enabled — skipping")
+            return
+
+        days_back = config.get("intelligence.notebooklm.research_papers.days_back", 7)
+
+        def _run():
+            aifirst_root = str(Path(__file__).resolve().parents[4] / "AIfirst")
+            if aifirst_root not in sys.path:
+                sys.path.insert(0, aifirst_root)
+
+            # Also ensure shared_lib is importable
+            projects_root = str(Path(__file__).resolve().parents[4])
+            if projects_root not in sys.path:
+                sys.path.insert(0, projects_root)
+
+            from agents.research_papers.config import TOPICS
+            from agents.research_papers.fetcher import (
+                SemanticScholarClient,
+                score_papers,
+            )
+            from agents.research_papers.main import (
+                run_pipeline,
+                save_paper_notes,
+                save_synthesis_note,
+                update_moc,
+            )
+
+            if not TOPICS:
+                logger.info("No research topics configured — skipping")
+                return None
+
+            client = SemanticScholarClient()
+            try:
+                papers = client.search(topics=TOPICS, days=days_back)
+            finally:
+                client.close()
+
+            if not papers:
+                logger.info("No new research papers found")
+                return None
+
+            # Score papers (graceful fallback if LLM unavailable)
+            papers = score_papers(papers)
+            if not papers:
+                logger.info("No papers passed relevance threshold")
+                return None
+
+            summary = run_pipeline(papers=papers, use_notebooklm=True, days=days_back)
+            save_paper_notes(papers, notebook_id=summary.get("notebook_id"))
+            save_synthesis_note(papers, summary, days=days_back)
+            update_moc(papers)
+
+            return {
+                "paper_count": len(papers),
+                "artifacts": len(summary.get("artifacts", [])),
+            }
+
+        result = await asyncio.to_thread(_run)
+        if result:
+            logger.info(
+                "Research papers complete: %d papers, %d artifacts",
+                result["paper_count"],
+                result["artifacts"],
+            )
+        else:
+            logger.info("Research papers: nothing to process")
+    except Exception as exc:
+        logger.exception("Research papers failed (non-fatal)")
+        if _is_auth_failure(exc):
+            try:
+                from regkb.telegram.notifications import notify_notebooklm_auth_failure
+
+                await notify_notebooklm_auth_failure("Research Papers")
+            except ImportError:
+                pass
+
+
 async def notebooklm_keepalive_job():
     """Touch NotebookLM session to delay auth expiry (non-fatal, config-gated).
 
