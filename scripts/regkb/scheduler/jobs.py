@@ -196,7 +196,9 @@ async def imap_poll_job():
         import os
 
         # Check if IMAP credentials are configured
-        if not os.environ.get("IMAP_USERNAME"):
+        # Accept SMTP_USERNAME as fallback — reply_handler.py already falls back
+        # to SMTP_* at runtime (see reply_handler.py:67-68).
+        if not (os.environ.get("IMAP_USERNAME") or os.environ.get("SMTP_USERNAME")):
             logger.debug("IMAP not configured — skipping poll")
             return None
 
