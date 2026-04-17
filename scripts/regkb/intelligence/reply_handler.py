@@ -20,6 +20,7 @@ from typing import Optional
 from ..config import config
 from .digest_tracker import DigestEntry, digest_tracker
 from .url_resolver import url_resolver
+from .web_search_resolver import web_search_resolve
 
 logger = logging.getLogger(__name__)
 
@@ -431,21 +432,33 @@ class ReplyHandler:
                 resolve_result = url_resolver.resolve(url)
 
                 if resolve_result.needs_manual:
-                    # Mark as needing manual URL
-                    digest_tracker.update_entry_status(
-                        entry.entry_id,
-                        "manual_needed",
-                        error_message="URL could not be resolved automatically",
+                    # Try web search fallback before giving up
+                    found_url = web_search_resolve(
+                        title=entry.title,
+                        agency=entry.agency,
+                        trusted_domains=list(url_resolver.trusted_domains),
                     )
-                    results.append(
-                        ProcessedDownload(
-                            entry=entry,
-                            success=False,
-                            needs_manual_url=True,
-                            error="URL needs manual resolution",
+
+                    if found_url:
+                        logger.info(f"Web search found URL for '{entry.title}': {found_url}")
+                        url = found_url
+                        # Fall through to download flow below
+                    else:
+                        # Original manual_needed path
+                        digest_tracker.update_entry_status(
+                            entry.entry_id,
+                            "manual_needed",
+                            error_message="URL could not be resolved automatically",
                         )
-                    )
-                    continue
+                        results.append(
+                            ProcessedDownload(
+                                entry=entry,
+                                success=False,
+                                needs_manual_url=True,
+                                error="URL needs manual resolution",
+                            )
+                        )
+                        continue
 
                 if resolve_result.is_paid:
                     digest_tracker.update_entry_status(
