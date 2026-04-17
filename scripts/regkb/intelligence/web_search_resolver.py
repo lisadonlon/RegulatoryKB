@@ -20,7 +20,7 @@ import logging
 from typing import Optional
 
 import httpx
-from duckduckgo_search import DDGS
+from ddgs import DDGS
 
 logger = logging.getLogger(__name__)
 
