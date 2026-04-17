@@ -6,13 +6,15 @@ Polls IMAP for replies to digest emails and processes download requests.
 
 import email
 import imaplib
+import json
 import logging
 import os
 import re
 import ssl
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from email.header import decode_header
+from pathlib import Path
 from typing import Optional
 
 from ..config import config
@@ -96,15 +98,41 @@ class ReplyHandler:
         r"^([0-9]{1,2})\s*$",
     ]
 
+    # Path to track processed email Message-IDs (avoids re-processing
+    # emails that Gmail has already marked as SEEN on self-sent replies).
+    _PROCESSED_IDS_FILE = Path(config.base_dir) / "logs" / "imap_processed_ids.json"
+
     def __init__(self) -> None:
         """Initialize the reply handler."""
         self.config = IMAPConfig()
         self._connection: Optional[imaplib.IMAP4_SSL] = None
+        self._processed_ids: set[str] = self._load_processed_ids()
 
         # Get allowed senders (recipients list from config)
         self.allowed_senders = {
             email.lower() for email in config.get("intelligence.email.recipients", [])
         }
+
+    def _load_processed_ids(self) -> set[str]:
+        """Load previously processed Message-IDs from disk."""
+        try:
+            if self._PROCESSED_IDS_FILE.exists():
+                data = json.loads(self._PROCESSED_IDS_FILE.read_text())
+                return set(data.get("processed", []))
+        except Exception:
+            logger.warning("Could not load processed IDs file, starting fresh")
+        return set()
+
+    def _save_processed_id(self, message_id: str) -> None:
+        """Persist a processed Message-ID to disk."""
+        self._processed_ids.add(message_id)
+        try:
+            self._PROCESSED_IDS_FILE.parent.mkdir(parents=True, exist_ok=True)
+            self._PROCESSED_IDS_FILE.write_text(
+                json.dumps({"processed": sorted(self._processed_ids)}, indent=2)
+            )
+        except Exception as e:
+            logger.warning(f"Could not save processed IDs: {e}")
 
     def _connect(self) -> tuple[bool, Optional[str]]:
         """
@@ -273,9 +301,12 @@ class ReplyHandler:
             # Select inbox
             self._connection.select("INBOX")
 
-            # Search for unread replies to digest emails
-            # Using multiple search criteria
-            search_criteria = '(UNSEEN SUBJECT "Re: Regulatory Intelligence")'
+            # Search for digest replies in the last 30 days.
+            # NOTE: Gmail auto-marks self-sent replies as SEEN, so we
+            # cannot rely on UNSEEN.  Instead we use a SINCE date filter
+            # and track processed Message-IDs locally in imap_processed_ids.json.
+            since_date = (datetime.now() - timedelta(days=30)).strftime("%d-%b-%Y")
+            search_criteria = f'(SINCE {since_date} SUBJECT "Re: Regulatory Intelligence")'
 
             status, message_ids = self._connection.search(None, search_criteria)
             if status != "OK":
@@ -299,6 +330,12 @@ class ReplyHandler:
                     subject = self._decode_header_value(msg.get("Subject", ""))
                     from_addr = self._decode_header_value(msg.get("From", ""))
                     date_str = msg.get("Date", "")
+                    message_id = msg.get("Message-ID", "")
+
+                    # Skip already-processed emails
+                    if message_id and message_id in self._processed_ids:
+                        logger.debug(f"Skipping already-processed email: {message_id}")
+                        continue
 
                     # Verify it's a digest reply
                     if not self._is_digest_reply(subject):
@@ -334,11 +371,16 @@ class ReplyHandler:
                             f"Found download request from {from_addr}: {len(entry_ids)} entries"
                         )
 
-                        # Mark as read
+                        # Mark as read (if not already) and record as processed
                         if mark_read:
                             self._connection.store(msg_id, "+FLAGS", "\\Seen")
+                        if message_id:
+                            self._save_processed_id(message_id)
                     else:
                         logger.debug(f"No entry IDs found in reply from {from_addr}")
+                        # Still mark as processed to avoid re-parsing
+                        if message_id:
+                            self._save_processed_id(message_id)
 
                 except Exception as e:
                     logger.error(f"Error processing email {msg_id}: {e}")
